@@ -12,7 +12,8 @@
         public DbSettings Db { get; set; }
     }
     public class DbSettings
-    {  
+    {
+        public string DbType { get; set; }
         public string LogConnString { get; set; }
         public string MainConnString { get; set; }
         public string SessionConnString { get; set; }

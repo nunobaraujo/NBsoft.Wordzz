@@ -1,13 +1,15 @@
 ﻿using NBsoft.Wordzz.Core.Models;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Core.Repositories
 {
     interface ISessionRepository
-    {
-        Task<IUserSession> Get(string token);
-        Task New(IUserSession session);
-        Task Update(IUserSession session);
+    {        
+        Task<ISession> Get(string token);
+        Task<IEnumerable<ISession>> List();
+        Task New(ISession session);
+        Task Update(ISession session);
         Task Remove(string token);
     }
 }

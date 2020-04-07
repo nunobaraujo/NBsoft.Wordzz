@@ -1,79 +1,175 @@
-﻿using NBsoft.Wordzz.Core.Models;
+﻿using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using NBsoft.Logs.Interfaces;
+using NBsoft.Wordzz.Core.Encryption;
+using NBsoft.Wordzz.Core.Models;
+using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
+using NBsoft.Wordzz.Extensions;
+using NBsoft.Wordzz.Models;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Services
 {
-    class SessionService : ISessionService
+    internal class SessionService : ISessionService
     {
-
+        public const int SessionMaxAge = 86400000;     // 1 day = 86400000 milliseconds
+        public const int SessionTimeout = 14400000;     // 4 hours = 14400000 milliseconds (front office can be open all morning without timout)
+        private const string Salt = "398D65B4845D";
         
-        public Task<IEnumerable<IUserSession>> GetAll()
+        private readonly ILogger _log;
+        private readonly IUserRepository _userRepository;
+        private readonly ISessionRepository _sessionRepository;
+        private readonly WordzzSettings _settings;
+
+        private string IV;
+
+        public SessionService(ILogger log, ISessionRepository sessionRepository, IUserRepository userRepository, IOptions<WordzzSettings> settings)
         {
-            throw new NotImplementedException();
+            _log = log;
+            _userRepository = userRepository;
+            _sessionRepository = sessionRepository;
+            _settings = settings.Value;
+
+            IV = _settings.EncryptionKey.Replace("-", "").Substring(16);
         }
 
-        public Task<IUserSession> GetSession(string sessionToken)
+        public async Task<IEnumerable<ISession>> GetAll()
         {
-            throw new NotImplementedException();
+            var dbSessions = await _sessionRepository.List();
+
+            var validSessions = new List<ISession>();
+            foreach (var session in dbSessions)
+            {
+                var isValid = await GetSession(session.SessionToken);
+                if (isValid != null)
+                    validSessions.Add(isValid);
+            }
+            return validSessions;
         }
 
-        public async Task<string> LogIn(string userName, string password, string userInfo)
+        public async Task<ISession> GetSession(string sessionToken)
+        {
+            if (sessionToken == null)
+                return null;
+
+            var session = await _sessionRepository.Get(sessionToken);
+
+            // Session expiration time hit
+            if (DateTime.UtcNow > session.Registered.AddMilliseconds(SessionMaxAge))
+            {
+                await _sessionRepository.Remove(sessionToken);
+                await _log.WriteInfoAsync(nameof(SessionService), nameof(GetSession), session.ToJson(), "Session expired");
+                return null;
+            }
+
+            // Session timeout
+            if (DateTime.UtcNow > session.LastAction.AddMilliseconds(SessionTimeout))
+            {
+                await _sessionRepository.Remove(sessionToken);
+                await _log.WriteInfoAsync(nameof(SessionService), nameof(GetSession), session.ToJson(), "Session timeout");
+                return null;
+            }
+            
+            return session;
+        }
+
+        public async Task<LogInResult> LogIn(string userName, string password, string userInfo)
         {
             if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password))
                 throw new ArgumentException($"{nameof(userName)} and {nameof(password)} cannot be empty.");
 
-            
-            string userId = null;
+
+            IUser user = null;
             // Admin Access
-            if (userName == Core.Constants.AdminUser && password == Core.Constants.NbSoftKey)
-                userId = (await _userRepository.User.Get(Core.Constants.AdminUser)).UserName;
+            if (userName == Constants.AdminUser && password == Constants.AdminPassword)
+                user = (await _userRepository.Get(Constants.AdminUser));
             else
-            {
-                var user = await _userRepository.User.Get(userName);
-                userId = await _userRepository.User.Auth(userName, password);
-            }
+                user = await _userRepository.Auth(userName, password);
 
-            if (userId == null)
-                throw new UnauthorizedAccessException("Authentication Failed");
+            if (user == null)
+                return null;
 
-            // Get user settings
-            var settings = await _userRepository.UserSettings.Get(userId);
-            if (settings == null)
+            // authentication successful so generate jwt token
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_settings.EncryptionKey);
+            var tokenDescriptor = new SecurityTokenDescriptor
             {
-                await _userRepository.UserSettings.Add(new UserSettings { UserName = userId, LastOpenCompanyId = null });
-                settings = await _userRepository.UserSettings.Get(userId);
-            }
-
-            // Get last used company
-            if (settings.LastOpenCompanyId == null)
-            {
-                var companies = await _userService.GetCompaniesByUserName(userId);
-                var lastUsedId = companies.FirstOrDefault()?.CompanyId;
-                var defaultCompany = companies.FirstOrDefault(x => x.IsDefault);
-                if (defaultCompany != null)
-                    lastUsedId = defaultCompany.CompanyId;
-                if (settings.LastOpenCompanyId != lastUsedId)
+                Subject = new ClaimsIdentity(new Claim[]
                 {
-                    await _userRepository.UserSettings.Update(new UserSettings { UserName = userId, LastOpenCompanyId = lastUsedId });
-                    settings = await _userRepository.UserSettings.Get(userId);
+                    new Claim(ClaimTypes.Name, user.UserName)
+                }),
+                Expires = DateTime.UtcNow.AddDays(7),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var sessionToken = tokenHandler.WriteToken(token);
+
+            var session = await CreateNewSession(user.UserName, userInfo, sessionToken);
+
+            //user.Token = tokenHandler.WriteToken(token);
+            //return user.WithoutPassword();
+            return new LogInResult
+            {
+                FirstName = user.UserName,
+                LastName = user.UserName,
+                Username = user.UserName,
+                Token = sessionToken
+            };
+        }
+
+        public async Task LogOut(string sessionToken)
+        {
+            if (string.IsNullOrEmpty(sessionToken))
+                throw new ArgumentException("Value cannot be empty", nameof(sessionToken));
+            try
+            {
+                var session = await GetSession(sessionToken);
+                if (session != null)
+                {
+                    await _sessionRepository.Remove(sessionToken);
+                    await _log.WriteInfoAsync(nameof(SessionService), nameof(LogOut), session.SessionToken, "Session Terminated.");
                 }
             }
-
-            return await CreateNewSession(userId, userInfo, settings.LastOpenCompanyId);
+            catch (Exception ex)
+            {
+                await _log.WriteErrorAsync(nameof(SessionService), nameof(LogOut), null, null, ex);
+                throw;
+            }
         }
-
-        public Task LogOut(string sessionToken)
+        
+        private async Task<ISession> CreateNewSession(string userId, string userInfo, string token)
         {
-            throw new NotImplementedException();
-        }
+            if (string.IsNullOrEmpty(userId))
+                throw new ArgumentException("Value cannot be empty", nameof(userId));
 
-        public bool ValidateSession(string sessionToken)
-        {
-            throw new NotImplementedException();
+            try
+            {
+                var sessionStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.Day, DateTime.UtcNow.Hour, DateTime.UtcNow.Minute, DateTime.UtcNow.Second);
+                var newSession = new Session
+                {
+                    UserId = userId,
+                    UserInfo = userInfo,
+                    Registered = sessionStart,
+                    LastAction = sessionStart,
+                    SessionToken = token
+                };
+                await _sessionRepository.New(newSession);
+                await _log.WriteInfoAsync(nameof(SessionService), nameof(CreateNewSession), newSession.ToJson(), "New session created.");
+                return newSession;
+            }
+            catch (Exception ex)
+            {
+                await _log.WriteErrorAsync(nameof(SessionService), nameof(CreateNewSession), null, null, ex);
+                throw;
+            }
         }
+       
     }
 }

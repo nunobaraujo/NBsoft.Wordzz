@@ -2,13 +2,13 @@
 
 namespace NBsoft.Wordzz.Core.Models
 {
-    interface IUserSession
+    public interface ISession
     {
-        string UserId { get; }
         string SessionToken { get; }
+        string UserId { get; }
         string UserInfo { get; }
-        string ActiveCompany { get; }
         DateTime Registered { get; }
         DateTime LastAction { get; }
+        DateTime Expired { get; }
     }
 }

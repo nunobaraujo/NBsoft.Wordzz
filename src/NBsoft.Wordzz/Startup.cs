@@ -8,13 +8,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using NBsoft.Logs;
 using NBsoft.Wordzz.Infrastructure;
-using NBsoft.Wordzz.Middleware;
 using NBsoft.Wordzz.Models;
 using NBsoft.Wordzz.Extensions;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace NBsoft.Wordzz
 {
@@ -30,21 +31,52 @@ namespace NBsoft.Wordzz
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors();
             services.AddControllers();
-            services.AddAuthentication(SessionKeyAuthOptions.AuthenticationScheme)
-                .AddScheme<SessionKeyAuthOptions, SessionKeyAuthHandler>(SessionKeyAuthOptions.AuthenticationScheme, "", options => { });
 
+            var appSettingsSection = Configuration.GetSection("Wordzz");
+            services.Configure<WordzzSettings>(appSettingsSection);
+            
+            var appSettings = appSettingsSection.Get<WordzzSettings>();
+            var key = Encoding.ASCII.GetBytes(appSettings.EncryptionKey);
+            services.AddAuthentication(x =>
+            {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(x =>
+            {
+                x.RequireHttpsMetadata = false;
+                x.SaveToken = true;                
+                x.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false
+                };
+                //x.SecurityTokenValidators.Add();
+            });
 
             services.AddSwaggerGen(options =>
             {
                 options.SwaggerDoc("v1", new OpenApiInfo { Version = "v1", Title = "Wordzz" });
-                options.OperationFilter<SessionKeyHeaderOperationFilter>();
+                options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.Http,
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Scheme = "bearer"
+                });
+                options.OperationFilter<JWTAuthOperationFilter>();
             });
 
             var settings = Configuration.Get<AppSettings>();
-            services.RegisterSettings(settings);
 
             SetupLoggers(services, settings);
+
+            services.RegisterRepositories(settings)
+                .RegisterServices();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -57,6 +89,12 @@ namespace NBsoft.Wordzz
 
             app.UseRouting();
 
+            app.UseCors(x => x
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader());
+
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseSwagger();

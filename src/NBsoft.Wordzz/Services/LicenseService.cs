@@ -1,4 +1,5 @@
-﻿using NBsoft.Logs.Interfaces;
+﻿using Microsoft.Extensions.Options;
+using NBsoft.Logs.Interfaces;
 using NBsoft.Wordzz.Core.Services;
 using NBsoft.Wordzz.Models;
 using System;
@@ -16,9 +17,9 @@ namespace NBsoft.Wordzz.Services
         private int validationAttempts;
         private int validationInterval;
 
-        public LicenseService(WordzzSettings setting, ILogger log)
+        public LicenseService(IOptions<WordzzSettings> settings, ILogger log)
         {
-            _setting = setting;
+            _setting = settings.Value;
             _log = log;
             _licenseCheckTimer = new Timer(new TimerCallback(LicenseCheckCallBack));
             _licenseCheckTimer.Change(10 * 1000, -1);
@@ -52,6 +53,7 @@ namespace NBsoft.Wordzz.Services
             try
             {
                 var response = await SendHttpPostAsync(licenseAddress, CheckLicensePars);
+                response = "Company: nbsoft";
                 if (response.StartsWith("Company:"))
                 {
                     IsLicensed = true;

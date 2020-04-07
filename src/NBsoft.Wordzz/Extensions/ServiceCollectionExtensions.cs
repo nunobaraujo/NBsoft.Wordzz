@@ -1,39 +1,28 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using NBsoft.Logs.Interfaces;
-using NBsoft.Wordzz.Core;
-using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
-using NBsoft.Wordzz.Middleware.Validator;
 using NBsoft.Wordzz.Models;
 using NBsoft.Wordzz.Repositories;
 using NBsoft.Wordzz.Services;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Extensions
 {
-    public static class ServiceCollectionExtensions
-    {
-        static IServiceCollection RegisterSettings(this IServiceCollection src, AppSettings settings)
-        {
+    internal  static class ServiceCollectionExtensions
+    {     
+        internal static IServiceCollection RegisterRepositories(this IServiceCollection src, AppSettings settings)
+        {            
+            var dbType = (RepositoryFactory.RepositoryType)Enum.Parse(typeof(RepositoryFactory.RepositoryType), settings.Wordzz.Db.DbType);
+            
             return src
-                .AddSingleton(settings);
+                .AddSingleton<RepositoryFactory>()
+                .AddScoped(x => x.GetRequiredService<RepositoryFactory>().CreateUserRepository())
+                .AddScoped(x => x.GetRequiredService<RepositoryFactory>().CreateSessionRepository());
         }
-        static IServiceCollection RegisterRepositories(this IServiceCollection src, AppSettings settings)
-        {   
-            return src
-                .AddSingleton(x => RepositoryFactory.CreateSessionRepository(
-                    RepositoryFactory.RepositoryType.MySql, 
-                    settings.Wordzz.Db.SessionConnString, 
-                    x.GetRequiredService<ILogger>()));
-        }
-        static IServiceCollection RegisterServices(this IServiceCollection src)
+        internal static IServiceCollection RegisterServices(this IServiceCollection src)
         {
             return src.AddSingleton<ILicenseService, LicenseService>()
-                .AddSingleton<ISessionService, SessionService>()
-                .AddSingleton<IValidator>(x => new SessionKeyValidator());
+                .AddScoped<ISessionService, SessionService>();
         }
     }
 }
