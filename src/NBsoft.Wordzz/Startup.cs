@@ -14,6 +14,7 @@ using NBsoft.Logs;
 using NBsoft.Wordzz.Infrastructure;
 using NBsoft.Wordzz.Middleware;
 using NBsoft.Wordzz.Models;
+using NBsoft.Wordzz.Extensions;
 
 namespace NBsoft.Wordzz
 {
@@ -41,6 +42,7 @@ namespace NBsoft.Wordzz
             });
 
             var settings = Configuration.Get<AppSettings>();
+            services.RegisterSettings(settings);
 
             SetupLoggers(services, settings);
         }
