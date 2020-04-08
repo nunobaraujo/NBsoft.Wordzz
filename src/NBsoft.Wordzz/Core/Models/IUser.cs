@@ -2,7 +2,7 @@
 
 namespace NBsoft.Wordzz.Core.Models
 {
-    interface IUser
+    public interface IUser
     {
         string UserName { get; }
         DateTime CreationDate { get; }

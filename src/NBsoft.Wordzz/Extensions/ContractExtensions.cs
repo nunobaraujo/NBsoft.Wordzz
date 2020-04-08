@@ -1,5 +1,5 @@
 ﻿using NBsoft.Wordzz.Core.Models;
-using NBsoft.Wordzz.Models;
+using NBsoft.Wordzz.Entities;
 
 namespace NBsoft.Wordzz.Extensions
 {

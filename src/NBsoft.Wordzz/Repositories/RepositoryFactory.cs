@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using NBsoft.Wordzz.Models;
 using Microsoft.Extensions.Options;
+using System.Data;
 
 namespace NBsoft.Wordzz.Repositories
 {
@@ -30,38 +31,34 @@ namespace NBsoft.Wordzz.Repositories
         }
 
         public ISessionRepository CreateSessionRepository()
-        {
-
-            switch (_repositoryType)
+        {             
+            Func<IDbConnection> conn = _repositoryType switch
             {
-                case RepositoryType.MsSqlServer:
-                    return new SessionRepository(_logger, () => new SqlConnection(_settings.Db.SessionConnString), GetUpdateFields);
-                case RepositoryType.MySql:
-                    return new SessionRepository(_logger, () => new MySqlConnection(_settings.Db.SessionConnString), GetUpdateFields);
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(_repositoryType));
-
-            }
-            
+                RepositoryType.MsSqlServer => () => new SqlConnection(_settings.Db.SessionConnString),
+                RepositoryType.MySql => () => new MySqlConnection(_settings.Db.SessionConnString),
+                _ => throw new ArgumentOutOfRangeException(nameof(_repositoryType)),
+            };
+            return new SessionRepository(_logger, conn, GetUpdateFields);
         }
         public IUserRepository CreateUserRepository()
         {
-            switch (_repositoryType)
+            Func<IDbConnection> conn = _repositoryType switch
             {
-                case RepositoryType.MsSqlServer:
-                    return new UserRepository(_logger, () => new SqlConnection(_settings.Db.MainConnString), GetUpdateFields);
-                case RepositoryType.MySql:
-                    return new UserRepository(_logger, () => new MySqlConnection(_settings.Db.MainConnString), GetUpdateFields);
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(_repositoryType));
-
-            }
-
+                RepositoryType.MsSqlServer => () => new SqlConnection(_settings.Db.MainConnString),
+                RepositoryType.MySql => () => new MySqlConnection(_settings.Db.MainConnString),
+                _ => throw new ArgumentOutOfRangeException(nameof(_repositoryType)),
+            };
+            return new UserRepository(_logger, conn, GetUpdateFields, GetInsertFields, _settings.EncryptionKey);
         }
 
         private static string GetUpdateFields(Type t)
         {
             return string.Join(",", t.GetProperties().Select(x => x.Name + "=@" + x.Name));            
+        }
+
+        private static string GetInsertFields(Type t)
+        {
+            return $"({string.Join(",", t.GetProperties().Select(x => x.Name))}) VALUES ({string.Join(",", t.GetProperties().Select(x => "@" + x.Name))})";
         }
 
     }

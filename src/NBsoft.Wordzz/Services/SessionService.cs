@@ -1,18 +1,18 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NBsoft.Logs.Interfaces;
-using NBsoft.Wordzz.Core.Encryption;
 using NBsoft.Wordzz.Core.Models;
 using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
+using NBsoft.Wordzz.Entities;
 using NBsoft.Wordzz.Extensions;
 using NBsoft.Wordzz.Models;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Services
@@ -21,14 +21,15 @@ namespace NBsoft.Wordzz.Services
     {
         public const int SessionMaxAge = 86400000;     // 1 day = 86400000 milliseconds
         public const int SessionTimeout = 14400000;     // 4 hours = 14400000 milliseconds (front office can be open all morning without timout)
-        private const string Salt = "398D65B4845D";
-        
+                
         private readonly ILogger _log;
         private readonly IUserRepository _userRepository;
         private readonly ISessionRepository _sessionRepository;
         private readonly WordzzSettings _settings;
 
         private string IV;
+        private Timer sessionCheckTimer;
+        private bool isDisposing = false;
 
         public SessionService(ILogger log, ISessionRepository sessionRepository, IUserRepository userRepository, IOptions<WordzzSettings> settings)
         {
@@ -38,7 +39,11 @@ namespace NBsoft.Wordzz.Services
             _settings = settings.Value;
 
             IV = _settings.EncryptionKey.Replace("-", "").Substring(16);
+
+            sessionCheckTimer = new Timer(new TimerCallback(SessionCheckTimerCallback));
+            sessionCheckTimer.Change(5 * 1000, -1);
         }
+        ~SessionService() { isDisposing = true; }
 
         public async Task<IEnumerable<ISession>> GetAll()
         {
@@ -80,7 +85,7 @@ namespace NBsoft.Wordzz.Services
             return session;
         }
 
-        public async Task<LogInResult> LogIn(string userName, string password, string userInfo)
+        public async Task<ISession> LogIn(string userName, string password, string userInfo)
         {
             if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password))
                 throw new ArgumentException($"{nameof(userName)} and {nameof(password)} cannot be empty.");
@@ -111,17 +116,7 @@ namespace NBsoft.Wordzz.Services
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var sessionToken = tokenHandler.WriteToken(token);
 
-            var session = await CreateNewSession(user.UserName, userInfo, sessionToken);
-
-            //user.Token = tokenHandler.WriteToken(token);
-            //return user.WithoutPassword();
-            return new LogInResult
-            {
-                FirstName = user.UserName,
-                LastName = user.UserName,
-                Username = user.UserName,
-                Token = sessionToken
-            };
+            return await CreateNewSession(user.UserName, userInfo, sessionToken);
         }
 
         public async Task LogOut(string sessionToken)
@@ -170,6 +165,22 @@ namespace NBsoft.Wordzz.Services
                 throw;
             }
         }
-       
+
+        private void SessionCheckTimerCallback(object status)
+        {
+            sessionCheckTimer.Change(-1, -1);
+
+            var getActiveTask = GetAll();
+            getActiveTask.Wait();
+            var active = getActiveTask.Result;
+
+            if (!isDisposing)
+                sessionCheckTimer.Change(60 * 1000, -1);
+            else
+                sessionCheckTimer.Dispose();
+
+        }
+
+
     }
 }

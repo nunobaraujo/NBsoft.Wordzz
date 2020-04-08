@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Core.Repositories
 {
-    interface ISessionRepository
+    public interface ISessionRepository
     {        
         Task<ISession> Get(string token);
         Task<IEnumerable<ISession>> List();

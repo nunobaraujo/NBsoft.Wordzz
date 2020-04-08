@@ -1,9 +1,9 @@
 ﻿using NBsoft.Wordzz.Core.Models;
 using System;
 
-namespace NBsoft.Wordzz.Models
+namespace NBsoft.Wordzz.Entities
 {
-    class Session : ISession
+    internal class Session : ISession
     {
         public string SessionToken { get; set; }
         public string UserId { get; set; }

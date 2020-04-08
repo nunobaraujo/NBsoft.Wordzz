@@ -1,9 +1,9 @@
 ﻿using NBsoft.Wordzz.Core.Models;
 using System;
 
-namespace NBsoft.Wordzz.Models
+namespace NBsoft.Wordzz.Entities
 {
-    class User : IUser
+    internal class User : IUser
     {
         public string UserName { get; set; }
         public DateTime CreationDate { get; set; }

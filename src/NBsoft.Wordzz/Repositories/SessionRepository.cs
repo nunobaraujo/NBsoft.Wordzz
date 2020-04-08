@@ -3,6 +3,7 @@ using NBsoft.Logs;
 using NBsoft.Logs.Interfaces;
 using NBsoft.Wordzz.Core.Models;
 using NBsoft.Wordzz.Core.Repositories;
+using NBsoft.Wordzz.Entities;
 using NBsoft.Wordzz.Extensions;
 using NBsoft.Wordzz.Models;
 using System;

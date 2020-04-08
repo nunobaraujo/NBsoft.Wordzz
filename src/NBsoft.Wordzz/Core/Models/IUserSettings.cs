@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace NBsoft.Wordzz.Core.Models
+﻿namespace NBsoft.Wordzz.Core.Models
 {
-    interface IUserSettings
+    public interface IUserSettings
     {
         string UserName { get; }
         string MainSettings { get; }

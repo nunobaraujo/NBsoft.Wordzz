@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NBsoft.Wordzz.Contracts.Requests;
+using NBsoft.Wordzz.Contracts.Results;
+using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
 
 namespace NBsoft.Wordzz.Controllers
@@ -16,23 +18,32 @@ namespace NBsoft.Wordzz.Controllers
     public class SessionController : ControllerBase
     {
         private readonly ISessionService _sessionService;
+        private readonly IUserRepository _userRepository;
 
-        public SessionController(ISessionService sessionService)
+        public SessionController(ISessionService sessionService, IUserRepository userRepository)
         {
             _sessionService = sessionService;
+            _userRepository = userRepository;
         }
 
         [HttpPost]
         [Route("LogIn/")]
-        [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(LogInResult), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> LogIn([FromBody]LogInRequest request)
         {
-            var user = await _sessionService.LogIn(request.UserName, request.Password, HttpContext.Connection.Id);
-            if (user == null)
+            var session = await _sessionService.LogIn(request.UserName, request.Password, HttpContext.Connection.Id);
+            if (session == null)
                 return BadRequest(new { message = "Username or password is incorrect" });
+                        
+            var userDetails = await _userRepository.GetDetails(session.UserId);
 
-            return Ok(user);
-            
+            var result = new LogInResult {
+                Username = session.UserId,
+                FirstName = string.IsNullOrEmpty(userDetails.FirstName)? session.UserId: userDetails.FirstName,
+                LastName = userDetails.LastName,
+                Token = session.SessionToken
+            };
+            return Ok(result);            
         }
         [Authorize]
         [HttpDelete]

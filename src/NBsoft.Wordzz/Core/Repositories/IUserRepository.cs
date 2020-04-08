@@ -1,10 +1,11 @@
-﻿using NBsoft.Wordzz.Core.Models;
+﻿using NBsoft.Wordzz.Contracts;
+using NBsoft.Wordzz.Core.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Core.Repositories
 {
-    interface IUserRepository
+    public interface IUserRepository
     {
         Task<IUser> Add(IUser user);
         Task<IUser> Update(IUser user);
@@ -16,6 +17,12 @@ namespace NBsoft.Wordzz.Core.Repositories
         
         Task<IUser> Auth(string userName, string userPassword);
         Task SetPassword(string userId, string password);
-        
+
+        Task<IUserSettings> GetSettings(string userName);
+        Task<IUserSettings> UpdateSettings(IUserSettings userSettings);
+
+        Task<IUserDetails> GetDetails(string userName);
+        Task<IUserDetails> UpdateDetails(IUserDetails userDetails);
+
     }
 }
