@@ -1,6 +1,6 @@
 ﻿namespace NBsoft.Wordzz.Core.Services
 {
-    interface ILicenseService
+    public interface ILicenseService
     {
         bool IsLicensed { get; }
     }

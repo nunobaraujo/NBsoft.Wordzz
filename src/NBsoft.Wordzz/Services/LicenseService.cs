@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Services
 {
-    public class LicenseService : ILicenseService
+    internal class LicenseService : ILicenseService
     {
         private readonly WordzzSettings _setting;
         private readonly ILogger _log;
