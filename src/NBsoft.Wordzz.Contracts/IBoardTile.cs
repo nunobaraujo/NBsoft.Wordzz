@@ -2,8 +2,8 @@
 {
     public interface IBoardTile
     {
-        short X { get; }
-        short Y { get; }
+        int X { get; }
+        int Y { get; }
         BonusType Bonus { get; }
     }
 }

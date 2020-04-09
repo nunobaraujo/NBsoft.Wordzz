@@ -50,3 +50,18 @@ CREATE TABLE `UserDetails` (
 	FOREIGN KEY (username) 		REFERENCES User(UserName)	ON DELETE RESTRICT
 );
 
+CREATE TABLE `Lexicon` (
+    Language			char(64)     	    NOT NULL UNIQUE PRIMARY KEY,
+    CreationDate		datetime            NOT NULL,
+    Description			text     	        NOT NULL,    
+    INDEX lexicon_index (language)
+);
+
+CREATE TABLE `Word` (
+    Id                  int UNSIGNED        AUTO_INCREMENT UNIQUE PRIMARY KEY,
+    Language			char(64)     	    NOT NULL,
+    Name			    char(255)     	    NOT NULL,        
+    Description			text     	        NULL,        
+    INDEX word_index (Language),
+    FOREIGN KEY (Language) 		REFERENCES Lexicon(Language)	ON DELETE RESTRICT
+);

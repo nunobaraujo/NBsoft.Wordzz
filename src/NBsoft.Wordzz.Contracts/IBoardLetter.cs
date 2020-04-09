@@ -2,8 +2,7 @@
 {
     public interface IBoardLetter
     {
-        string Letter { get; }
-        int Value { get; }
+        ILetter Letter { get; }
         string Owner { get; }
     }
 }

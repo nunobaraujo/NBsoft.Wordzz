@@ -4,6 +4,6 @@ namespace NBsoft.Wordzz.Core.Services
 {
     public interface IGameService
     {
-        IBoard GenerateBoard();
+        IBoard GenerateBoard(int rows, int columns);
     }
 }

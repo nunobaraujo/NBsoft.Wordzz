@@ -51,15 +51,36 @@ namespace NBsoft.Wordzz.Repositories
             return new UserRepository(_logger, conn, GetUpdateFields, GetInsertFields, _settings.EncryptionKey);
         }
 
-        private static string GetUpdateFields(Type t)
+        public IWordRepository CreateWordRepository()
         {
-            return string.Join(",", t.GetProperties().Select(x => x.Name + "=@" + x.Name));            
+            Func<string> getLastId;
+            Func<IDbConnection> conn;
+
+            switch (_repositoryType)
+            {
+                case RepositoryType.MsSqlServer:
+                    conn = () => new SqlConnection(_settings.Db.MainConnString);
+                    getLastId = GetSqlLastInsertedId;
+                    break;
+                case RepositoryType.MySql:
+                    conn = () => new MySqlConnection(_settings.Db.MainConnString);
+                    getLastId = GetMySqlLastInsertedId;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(_repositoryType));
+            }
+            return new WordRepository(_logger, conn, GetUpdateFields, GetInsertFields, getLastId);
         }
 
-        private static string GetInsertFields(Type t)
-        {
-            return $"({string.Join(",", t.GetProperties().Select(x => x.Name))}) VALUES ({string.Join(",", t.GetProperties().Select(x => "@" + x.Name))})";
-        }
+        private static string GetUpdateFields(Type t) => 
+            string.Join(",", t.GetProperties().Select(x => x.Name + "=@" + x.Name));
 
+        private static string GetInsertFields(Type t) =>
+            $"({string.Join(",", t.GetProperties().Select(x => x.Name))}) VALUES ({string.Join(",", t.GetProperties().Select(x => "@" + x.Name))})";
+
+        private static string GetMySqlLastInsertedId() => 
+            "SELECT LAST_INSERT_ID()";
+        private static string GetSqlLastInsertedId() => 
+            "SELECT SCOPE_IDENTITY()";
     }
 }
