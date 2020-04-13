@@ -5,5 +5,6 @@
         IBoardLetter[] Letters { get; }
         IBoardTile[] Tiles { get; }
         string Owner { get; }
+        int Score { get; }
     }
 }
