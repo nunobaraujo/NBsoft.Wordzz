@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NBsoft.Wordzz.Contracts.Entities;
 using NBsoft.Wordzz.Contracts.Requests;
 using NBsoft.Wordzz.Contracts.Settings;
 using NBsoft.Wordzz.Core.Repositories;
@@ -41,9 +42,10 @@ namespace NBsoft.Wordzz.Controllers
                 Salt = ""
             };
 
-            var newUser = await _userRepository.Add(user);
+            var newUser = await _userRepository.Add(user, request.Email);
             await _userRepository.SetPassword(request.UserName, request.Password);
             
+           
             return Ok(newUser);
         }
 

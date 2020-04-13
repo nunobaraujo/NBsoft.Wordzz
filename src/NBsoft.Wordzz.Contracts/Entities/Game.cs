@@ -5,6 +5,7 @@ namespace NBsoft.Wordzz.Contracts.Entities
 {
     public class Game : IGame
     {
+        public string Language { get; set; }
         public IBoard Board { get; set; }
         public IGamePlayer Player01 { get; set; }
         public IGamePlayer Player02 { get; set; }

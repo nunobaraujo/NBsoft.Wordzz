@@ -61,10 +61,13 @@ namespace NBsoft.Wordzz.Services
 
         public async Task<ISession> GetSession(string sessionToken)
         {
+
             if (sessionToken == null)
                 return null;
 
             var session = await _sessionRepository.Get(sessionToken);
+            if (session == null)
+                return null;
 
             // Session expiration time hit
             if (DateTime.UtcNow > session.Registered.AddMilliseconds(SessionMaxAge))

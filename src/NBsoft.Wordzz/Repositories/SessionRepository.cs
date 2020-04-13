@@ -88,7 +88,7 @@ namespace NBsoft.Wordzz.Repositories
                 using var cnn = _createdDbConnection();
                 if (session != null)
                 {
-                    var editable = session.ToDto();
+                    var editable = session.ToDto<Session>();
                     editable.Expired = DateTime.UtcNow;
                     var res = await cnn.ExecuteAsync(SqlCommands.INSERTHISTORY, editable);
                 }                

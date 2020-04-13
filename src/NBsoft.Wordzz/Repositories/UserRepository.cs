@@ -33,23 +33,34 @@ namespace NBsoft.Wordzz.Repositories
             _log = log;
             _encryptionKey = encryptionKey;
 
-            CheckAdminUser();
+            Task.Run(() => CheckAdminUser()).Wait();
         }
                 
-        public async Task<IUser> Add(IUser user)
+        public async Task<IUser> Add(IUser user,string email)
         {
             try
             {
                 if (user == null)
                     throw new ArgumentNullException(nameof(user));
 
+                if (!email.IsValidEmail())
+                    throw new ArgumentException("Invalid email");
+
                 using var cnn = _createdDbConnection();
                 cnn.Open();
                 var transaction = cnn.BeginTransaction();
                 // Validate username
-                var userId = await cnn.ExecuteScalarAsync($"SELECT UserName FROM User WHERE UserName=@UserName", new { user.UserName }, transaction);
+                var userId = await cnn.ExecuteScalarAsync($"SELECT UserName FROM User WHERE UserName=@UserName", 
+                    new { user.UserName }, transaction);
                 if (userId != null)
                     throw new InvalidConstraintException($"Username already exists: {user.UserName}");
+                
+                // Validate email
+                var userEmail = await cnn.ExecuteScalarAsync($"SELECT UserName FROM UserDetails WHERE Email=@Email", 
+                    new { Email = email.EncryptField(_encryptionKey) }, transaction);
+                if (userEmail != null)
+                    throw new InvalidConstraintException($"Email already exists: {email}");
+
 
                 // Create User
                 string query = $"INSERT INTO User {_getSqlInsertFields(typeof(User))}";
@@ -63,8 +74,10 @@ namespace NBsoft.Wordzz.Repositories
                 if (res == 0)
                     throw new Exception($"ExecuteAsync failed: {query} [{user.ToJson()}]");
 
+                // Create user details
                 query = $"INSERT INTO UserDetails {_getSqlInsertFields(typeof(UserDetails))}";
-                res = await cnn.ExecuteAsync(query, new UserDetails { UserName = user.UserName }, transaction);
+                var details = new UserDetails { UserName = user.UserName, Email = email };
+                res = await cnn.ExecuteAsync(query, details.Encrypt(_encryptionKey), transaction);
                 if (res == 0)
                     throw new Exception($"ExecuteAsync failed: {query} [{user.ToJson()}]");
 
@@ -197,9 +210,26 @@ namespace NBsoft.Wordzz.Repositories
                 throw;
             }
         }
-        public Task<IUser> GetByEmail(string email)
+        public async Task<IUser> GetByEmail(string email)
         {
-            throw new NotImplementedException();
+            try
+            {
+                if (string.IsNullOrEmpty(email))
+                    throw new ArgumentNullException(nameof(email));
+
+                using var cnn = _createdDbConnection();
+                var userName = await cnn.ExecuteScalarAsync<string>($"SELECT UserName FROM UserDetails WHERE Email=@Email",
+                    new { Email = email.EncryptField(_encryptionKey) });
+                if (userName == null)
+                    return null;
+
+                return await Get(userName);
+            }
+            catch (Exception ex)
+            {
+                await _log?.WriteErrorAsync(nameof(UserRepository), nameof(GetByEmail), email, null, ex);
+                throw;
+            }
         }
         public Task<IEnumerable<IUser>> List()
         {
@@ -327,7 +357,7 @@ namespace NBsoft.Wordzz.Repositories
                 Deleted = false
             };
             var withPassword = user.SetPassword("#Na123@10", _encryptionKey);
-            var added = await Add(withPassword);
+            var added = await Add(withPassword, "geral@nbsoft.pt");
 
             var details = new UserDetails
             {

@@ -15,7 +15,7 @@ namespace NBsoft.Wordzz.Extensions
 
         internal static IUser SetPassword(this IUser src, string password, string encryptionKey)
         {
-            var editable = src.ToDto();
+            var editable = src.ToDto<User>();
             editable.Salt = Guid.NewGuid().ToString().Replace("-", "").ToUpper();
             editable.PasswordHash = Encrypt(password, encryptionKey, editable.Salt);
             return editable;
@@ -83,7 +83,7 @@ namespace NBsoft.Wordzz.Extensions
         }
 
         private static string DecryptField(this string src, string encryptionKey) => string.IsNullOrEmpty(src) ? "" : Decrypt(src, encryptionKey, DataProtectionSalt);
-        private static string EncryptField(this string src, string encryptionKey) => string.IsNullOrEmpty(src) ? "" : Encrypt(src, encryptionKey, DataProtectionSalt);
+        public static string EncryptField(this string src, string encryptionKey) => string.IsNullOrEmpty(src) ? "" : Encrypt(src, encryptionKey, DataProtectionSalt);
 
     }
 }

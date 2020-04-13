@@ -8,5 +8,7 @@ namespace NBsoft.Wordzz.Contracts.Entities
         public IBoardLetter[] Letters { get; set; }
         public IBoardTile[] Tiles { get; set; }
         public string Owner { get; set; }
+
+        public int Score => throw new NotImplementedException();
     }
 }

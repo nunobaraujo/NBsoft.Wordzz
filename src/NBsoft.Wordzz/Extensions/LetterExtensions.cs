@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Extensions
 {
@@ -57,21 +55,21 @@ namespace NBsoft.Wordzz.Extensions
 
                         // Two points
                         { 'D', 2 }, { 'L', 2 }, { 'C', 2 }, { 'P', 2 }, 
-                        AS
+                        
                         // Three points
-                        { 'B', 3 }, { 'C', 3 }, { 'M', 3 }, { 'P', 3 },
+                        { 'N', 3 }, { 'B', 3 }, { 'Ç', 3 },
 
                         // Four points
-                        { 'F', 4 }, { 'H', 4 }, { 'V', 4 }, { 'W', 4 }, { 'Y', 4 }, 
+                        { 'F', 4 }, { 'G', 4 }, { 'H', 4 }, { 'V', 4 },
 
                         // Five points
-                        { 'K', 5 }, 
+                        { 'J', 5 }, 
 
-                        // Eight points
-                        { 'J', 10 }, { 'X', 8 },
+                        // Six points
+                        { 'Q', 6 },
 
-                        // Ten points
-                        { 'Q', 10 }, { 'Z', 10 }
+                        // Eight  points
+                        { 'X', 8 }, { 'Z', 8 }
                     };
                     break;
                 default:

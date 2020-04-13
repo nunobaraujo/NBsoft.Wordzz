@@ -7,7 +7,7 @@ namespace NBsoft.Wordzz.Core.Repositories
 {
     public interface IUserRepository
     {
-        Task<IUser> Add(IUser user);
+        Task<IUser> Add(IUser user, string email);
         Task<IUser> Update(IUser user);
         Task Delete(string userName);
         
