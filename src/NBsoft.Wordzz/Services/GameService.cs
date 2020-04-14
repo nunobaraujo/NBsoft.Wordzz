@@ -67,7 +67,6 @@ namespace NBsoft.Wordzz.Services
             return await NewGame(language, user1, GetAI(aiLevel), size);
 
         }
-
        
         private async Task<IGame> NewGame(string language, IUser player01, IUser player02, int size)
         {
@@ -103,5 +102,6 @@ namespace NBsoft.Wordzz.Services
             throw new NotImplementedException();
         }
 
+        public Task<IEnumerable<string>> GetContacts(string userId) => _userRepository.GetContacts(userId);
     }
 }

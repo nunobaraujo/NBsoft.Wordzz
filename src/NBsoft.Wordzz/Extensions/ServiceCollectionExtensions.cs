@@ -23,7 +23,9 @@ namespace NBsoft.Wordzz.Extensions
         internal static IServiceCollection RegisterServices(this IServiceCollection src)
         {
             return src.AddSingleton<ILicenseService, LicenseService>()
-                .AddScoped<ISessionService, SessionService>();
+                .AddScoped<ISessionService, SessionService>()
+                .AddSingleton<IGameService, GameService>();
+
         }
     }
 }
