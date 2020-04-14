@@ -1,17 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using NBsoft.Logs;
+using NBsoft.Logs.Interfaces;
+using NBsoft.Wordzz.Contracts.Entities;
+using NBsoft.Wordzz.Contracts.Requests;
+using NBsoft.Wordzz.Core.Repositories;
+using NBsoft.Wordzz.Core.Services;
+using NBsoft.Wordzz.Extensions;
+using System;
 using System.Linq;
 using System.Net;
 using System.Net.Mime;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using NBsoft.Wordzz.Contracts.Entities;
-using NBsoft.Wordzz.Contracts.Requests;
-using NBsoft.Wordzz.Contracts.Results;
-using NBsoft.Wordzz.Core.Repositories;
-using NBsoft.Wordzz.Core.Services;
 
 namespace NBsoft.Wordzz.Controllers
 {
@@ -22,11 +23,13 @@ namespace NBsoft.Wordzz.Controllers
     {
         private readonly IWordRepository _wordRepository;
         private readonly ISessionService _sessionService;
+        private readonly ILogger _log;
 
-        public LexiconController(IWordRepository wordRepository, ISessionService sessionService)
+        public LexiconController(IWordRepository wordRepository, ISessionService sessionService, ILogger log)
         {
             _wordRepository = wordRepository;
             _sessionService = sessionService;
+            _log = log;
         }
 
         [HttpPost]
@@ -35,8 +38,7 @@ namespace NBsoft.Wordzz.Controllers
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> AddDictionary([FromBody]DictionaryRequest request)
         {
-            var result = await HttpContext.AuthenticateAsync();
-            string accessToken = result.Properties.Items[".Token.access_token"];
+            string accessToken = await HttpContext.GetToken();
             var session = await _sessionService.GetSession(accessToken);
             if (session == null)
                 return BadRequest(new { message = "Session expired. Please login again." });
@@ -60,7 +62,11 @@ namespace NBsoft.Wordzz.Controllers
             var isOK = await _wordRepository.AddDictionary(lexicon, words);
 
             if (isOK)
-                return Ok(isOK);
+            {
+                await _log.InfoAsync($"New Lexicon Created: [{lexicon.Language}]", context: session.UserId);
+                
+                return Ok(isOK); 
+            }
             else
                 return BadRequest(new { message = "Dictionary creation failed" });
         }
@@ -71,8 +77,7 @@ namespace NBsoft.Wordzz.Controllers
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> GetDictionary([FromQuery]string language)
         {
-            var result = await HttpContext.AuthenticateAsync();
-            string accessToken = result.Properties.Items[".Token.access_token"];
+            string accessToken = await HttpContext.GetToken();
             var session = await _sessionService.GetSession(accessToken);
             if (session == null)
                 return BadRequest(new { message = "Session expired. Please login again." });

@@ -65,3 +65,11 @@ CREATE TABLE `Word` (
     INDEX word_index (Language),
     FOREIGN KEY (Language) 		REFERENCES Lexicon(Language)	ON DELETE RESTRICT
 );
+
+CREATE TABLE `UserContacts` (
+    Id                  int UNSIGNED        AUTO_INCREMENT UNIQUE PRIMARY KEY,
+    UserName			char(128)     	NOT NULL,
+    Contact     		char(128)       NOT NULL,
+    INDEX usercontacts_index (username),
+    FOREIGN KEY (username) 		REFERENCES User(UserName)	ON DELETE CASCADE 
+);

@@ -1,15 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NBsoft.Wordzz.Contracts.Requests;
 using NBsoft.Wordzz.Contracts.Results;
 using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
+using NBsoft.Wordzz.Extensions;
+using System.Net;
+using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Controllers
 {
@@ -50,8 +48,7 @@ namespace NBsoft.Wordzz.Controllers
         [Route("LogIn/")]
         public async Task<IActionResult> LogOut()
         {
-            var result = await HttpContext.AuthenticateAsync();
-            string accessToken = result.Properties.Items[".Token.access_token"];
+            string accessToken = await HttpContext.GetToken();
             await _sessionService.LogOut(accessToken);
             return Ok();
         }

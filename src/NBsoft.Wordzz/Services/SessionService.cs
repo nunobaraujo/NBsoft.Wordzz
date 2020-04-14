@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using NBsoft.Logs;
 using NBsoft.Logs.Interfaces;
 using NBsoft.Wordzz.Core.Models;
 using NBsoft.Wordzz.Core.Repositories;
@@ -72,16 +73,16 @@ namespace NBsoft.Wordzz.Services
             // Session expiration time hit
             if (DateTime.UtcNow > session.Registered.AddMilliseconds(SessionMaxAge))
             {
-                await _sessionRepository.Remove(sessionToken);
-                await _log.WriteInfoAsync(nameof(SessionService), nameof(GetSession), session.ToJson(), "Session expired");
+                await _sessionRepository.Remove(sessionToken);                
+                await _log.InfoAsync($"Session expired: [{session.SessionToken}]", context: session.UserId);
                 return null;
             }
 
             // Session timeout
             if (DateTime.UtcNow > session.LastAction.AddMilliseconds(SessionTimeout))
             {
-                await _sessionRepository.Remove(sessionToken);
-                await _log.WriteInfoAsync(nameof(SessionService), nameof(GetSession), session.ToJson(), "Session timeout");
+                await _sessionRepository.Remove(sessionToken);                
+                await _log.InfoAsync($"Session timeout: [{session.SessionToken}]", context: session.UserId);
                 return null;
             }
             
@@ -132,12 +133,12 @@ namespace NBsoft.Wordzz.Services
                 if (session != null)
                 {
                     await _sessionRepository.Remove(sessionToken);
-                    await _log.WriteInfoAsync(nameof(SessionService), nameof(LogOut), session.SessionToken, "Session Terminated.");
+                    await _log.InfoAsync($"Session Terminated: [{session.SessionToken}]", context: session.UserId);
                 }
             }
             catch (Exception ex)
-            {
-                await _log.WriteErrorAsync(nameof(SessionService), nameof(LogOut), null, null, ex);
+            {   
+                await _log.ErrorAsync(ex.Message, ex, context: sessionToken);
                 throw;
             }
         }
@@ -158,13 +159,13 @@ namespace NBsoft.Wordzz.Services
                     LastAction = sessionStart,
                     SessionToken = token
                 };
-                await _sessionRepository.New(newSession);
-                await _log.WriteInfoAsync(nameof(SessionService), nameof(CreateNewSession), newSession.ToJson(), "New session created.");
+                await _sessionRepository.New(newSession);                
+                await _log.InfoAsync($"New session: [{newSession.SessionToken}]", context: newSession.UserId);
                 return newSession;
             }
             catch (Exception ex)
-            {
-                await _log.WriteErrorAsync(nameof(SessionService), nameof(CreateNewSession), null, null, ex);
+            {   
+                await _log.ErrorAsync(ex.Message, ex, context: userId);
                 throw;
             }
         }

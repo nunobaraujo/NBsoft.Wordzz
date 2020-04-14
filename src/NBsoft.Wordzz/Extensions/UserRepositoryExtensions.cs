@@ -2,8 +2,10 @@
 using NBsoft.Wordzz.Contracts.Entities;
 using NBsoft.Wordzz.Core.Encryption;
 using NBsoft.Wordzz.Core.Models;
+using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Entities;
 using System;
+using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Extensions
 {
@@ -58,6 +60,13 @@ namespace NBsoft.Wordzz.Extensions
             return decrypted;
         }
 
+        internal static async Task<IUser> FindUser(this IUserRepository src, string userNameOrEmail)
+        {
+            var user = await src.Get(userNameOrEmail);
+            if (user == null)
+                user = await src.GetByEmail(userNameOrEmail);
+            return user;
+        }
 
         private static string Encrypt(string plainText, string encryptionKey, string salt)
         {

@@ -110,9 +110,7 @@ namespace NBsoft.Wordzz.Repositories
                 if (string.IsNullOrEmpty(userPassword))
                     throw new ArgumentNullException(nameof(userPassword));
 
-                var user = await Get(userName);
-                if (user == null)
-                    user = await GetByEmail(userName);
+                var user = await this.FindUser(userName);
                 if (user == null)
                     return null;
 
@@ -383,6 +381,127 @@ namespace NBsoft.Wordzz.Repositories
             var addedSettings = await UpdateSettings(settings);
             await _log.WarningAsync("Added server admin user");
 
+        }
+
+        public async Task<string> AddContact(string userName, string contactUserName)
+        {
+            try
+            {
+                if (userName == null)
+                    throw new ArgumentNullException(nameof(userName));
+
+                if (contactUserName == null)
+                    throw new ArgumentNullException(nameof(contactUserName));
+
+                if (userName == contactUserName) 
+                {
+                    throw new ArgumentException();
+                }
+                // Validate if user EXISTS
+                var user = await Get(userName);
+                if (user == null)
+                    throw new ArgumentException($"User doesn't exist: {userName}");
+
+                // Validate if contact EXISTS
+                var newContact = await Get(contactUserName);
+                if (newContact == null)
+                    throw new ArgumentException($"Contact doesn't exist: {contactUserName}");
+
+                using var cnn = _createdDbConnection();
+                cnn.Open();
+                var transaction = cnn.BeginTransaction();
+                
+
+                // Validate if contact is already on list
+                var userId = await cnn.ExecuteScalarAsync($"SELECT Contact FROM UserContacts WHERE UserName=@UserName AND Contact=@Contact",
+                    new { UserName = userName, Contact  = contactUserName }, transaction);
+                if (userId != null)
+                    throw new InvalidConstraintException($"Contact already exists: {contactUserName}");
+
+
+                // Create Contact
+                string query = $"INSERT INTO UserContacts (UserName, Contact) VALUES (@UserName, @Contact)";
+                var res = await cnn.ExecuteAsync(query, new { UserName = userName, Contact = contactUserName }, transaction);
+                if (res == 0)
+                    throw new Exception($"ExecuteAsync failed: {query} [{userName}],[{contactUserName}]");
+
+                transaction.Commit();
+
+                return newContact.UserName;
+            }
+            catch (Exception ex)
+            {
+                await _log?.WriteErrorAsync(nameof(UserRepository), nameof(AddContact), userName, null, ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> DeleteContact(string userName, string contactUserName)
+        {
+            try
+            {
+                if (userName == null)
+                    throw new ArgumentNullException(nameof(userName));
+
+                if (contactUserName == null)
+                    throw new ArgumentNullException(nameof(contactUserName));
+
+                // Validate if user EXISTS
+                var user = await Get(userName);
+                if (user == null)
+                    return false;
+
+                // Validate if contact EXISTS
+                var newContact = await Get(contactUserName);
+                if (newContact == null)
+                    return false;
+
+                using var cnn = _createdDbConnection();
+                cnn.Open();
+                var transaction = cnn.BeginTransaction();
+
+
+                // Validate if contact is already on list
+                var userId = await cnn.ExecuteScalarAsync($"SELECT Contact FROM UserContacts WHERE UserName=@UserName AND Contact=@Contact",
+                    new { UserName = userName, Contact = contactUserName }, transaction);
+                if (userId == null)
+                    return false;
+
+
+                // Create Contact
+                string query = "DELETE FROM UserContacts WHERE UserName=@UserName AND Contact=@Contact";
+                var res = await cnn.ExecuteAsync(query, new { UserName = userName, Contact = contactUserName }, transaction);
+                if (res == 0)
+                    throw new Exception($"ExecuteAsync failed: {query} [{userName}],[{contactUserName}]");
+
+                transaction.Commit();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await _log?.WriteErrorAsync(nameof(UserRepository), nameof(AddContact), userName, null, ex);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<string>> GetContacts(string userName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(userName))
+                    throw new ArgumentNullException(nameof(userName));
+
+                using var cnn = _createdDbConnection();
+                var query = @"SELECT Contact FROM UserContacts WHERE UserName=@UserName";
+                return await cnn.QueryAsync<string>(
+                    query, new { UserName = userName });
+            }
+            catch (Exception ex)
+            {
+                await _log?.WriteErrorAsync(nameof(UserRepository), nameof(Get), userName, null, ex);
+                throw;
+            }
         }
     }
 }

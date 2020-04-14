@@ -24,5 +24,9 @@ namespace NBsoft.Wordzz.Core.Repositories
         Task<IUserDetails> GetDetails(string userName);
         Task<IUserDetails> UpdateDetails(IUserDetails userDetails);
 
+        Task<string> AddContact(string userName, string contactUserName);
+        Task<bool> DeleteContact(string userName, string contactUserName);
+        Task<IEnumerable<string>> GetContacts(string userName);
+
     }
 }

@@ -16,6 +16,8 @@ using NBsoft.Wordzz.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using NBsoft.Wordzz.Services;
+using NBsoft.Wordzz.Hubs;
 
 namespace NBsoft.Wordzz
 {
@@ -31,7 +33,15 @@ namespace NBsoft.Wordzz
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddCors();
+            services.AddCors(o => o.AddPolicy("CorsPolicy", builder =>
+            {
+                builder
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials()
+                .WithOrigins("http://localhost:4200");
+                
+            }));
             services.AddControllers();
 
             var appSettingsSection = Configuration.GetSection("Wordzz");
@@ -55,8 +65,26 @@ namespace NBsoft.Wordzz
                     ValidateIssuer = false,
                     ValidateAudience = false
                 };
-                //x.SecurityTokenValidators.Add();
+                x.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+
+                        // If the request is for our hub...
+                        var path = context.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            (path.StartsWithSegments("/hubs/chat")))
+                        {
+                            // Read the token out of the query string
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
             });
+
+            services.AddSignalR();
 
             services.AddSwaggerGen(options =>
             {
@@ -89,10 +117,11 @@ namespace NBsoft.Wordzz
 
             app.UseRouting();
 
-            app.UseCors(x => x
-                .AllowAnyOrigin()
-                .AllowAnyMethod()
-                .AllowAnyHeader());
+            //app.UseCors(x => x
+            //    .AllowAnyOrigin()
+            //    .AllowAnyMethod()
+            //    .AllowAnyHeader());
+            app.UseCors("CorsPolicy");
 
             app.UseAuthentication();
             app.UseAuthorization();
@@ -105,6 +134,7 @@ namespace NBsoft.Wordzz
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapHub<ChatHub>("/hubs/chat");
                 endpoints.MapControllers();
             });
         }
