@@ -5,6 +5,7 @@ using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
 using NBsoft.Wordzz.Extensions;
 using NBsoft.Wordzz.Helpers;
+using NBsoft.Wordzz.Hubs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -75,6 +76,7 @@ namespace NBsoft.Wordzz.Services
                 throw new ApplicationException($"Invalid language [{language}]");
             var game = new Game
             {
+                Id = Guid.NewGuid().ToString(),
                 Language = language,
                 Board = GenerateBoard(size),
                 LetterBag = LetterBagHelper.GenereateLetterBag(language),
@@ -94,6 +96,8 @@ namespace NBsoft.Wordzz.Services
                 Status = GameStatus.Ongoing,
                 CurrentStart = DateTime.UtcNow
             };
+
+            GameHandler.ActiveGames.Add(game.Id, game);
             return game;
         }
 

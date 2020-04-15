@@ -175,9 +175,9 @@ namespace NBsoft.Wordzz.Services
             sessionCheckTimer.Change(-1, -1);
 
             var getActiveTask = GetAll();
-            getActiveTask.Wait();
-            var active = getActiveTask.Result;
-
+            try { getActiveTask.Wait(); }
+            catch { }
+            
             if (!isDisposing)
                 sessionCheckTimer.Change(60 * 1000, -1);
             else

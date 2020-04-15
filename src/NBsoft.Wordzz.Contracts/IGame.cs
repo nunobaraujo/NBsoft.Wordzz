@@ -5,6 +5,7 @@ namespace NBsoft.Wordzz.Contracts
 {
     public interface IGame
     {
+        string Id { get; }
         string Language { get; }
         IBoard Board { get; }
         IGamePlayer Player01 { get; }
