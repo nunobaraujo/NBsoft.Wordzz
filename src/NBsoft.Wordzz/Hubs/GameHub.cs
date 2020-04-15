@@ -44,7 +44,7 @@ namespace NBsoft.Wordzz.Hubs
         {
             var allContacts = await gameService.GetContacts(userId);
             var onlineContacts = ClientHandler.ConnectedIds
-                .Where(c => allContacts.Contains(c.Key))
+                .Where(c => allContacts.Contains(c.Value))
                 .Select(c => c.Value)
                 .Distinct();
             return onlineContacts;
