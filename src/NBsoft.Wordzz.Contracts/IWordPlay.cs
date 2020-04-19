@@ -1,7 +1,10 @@
-﻿namespace NBsoft.Wordzz.Contracts
+﻿using System;
+
+namespace NBsoft.Wordzz.Contracts
 {
-    public interface IBoardWord
+    public interface IWordPlay
     {
+        DateTime PlayDate { get; }
         IBoardLetter[] Letters { get; }
         IBoardTile[] Tiles { get; }
         string Owner { get; }

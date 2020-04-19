@@ -41,7 +41,7 @@ namespace NBsoft.Wordzz.Controllers
             string accessToken = await HttpContext.GetToken();
             var session = await _sessionService.GetSession(accessToken);
             if (session == null)
-                return BadRequest(new { message = "Session expired. Please login again." });
+                return Unauthorized(new { message = "Session expired. Please login again." });
 
             if (session.UserId != Constants.AdminUser)
                 return BadRequest(new { message = "Not authorized" });
@@ -80,7 +80,7 @@ namespace NBsoft.Wordzz.Controllers
             string accessToken = await HttpContext.GetToken();
             var session = await _sessionService.GetSession(accessToken);
             if (session == null)
-                return BadRequest(new { message = "Session expired. Please login again." });
+                return Unauthorized(new { message = "Session expired. Please login again." });
 
             var lexicon = await _wordRepository.GetDictionary(language);
             var words = await _wordRepository.ListWords(lexicon);

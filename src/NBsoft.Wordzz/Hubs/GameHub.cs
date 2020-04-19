@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using NBsoft.Wordzz.Contracts;
 using NBsoft.Wordzz.Core.Services;
 using System;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ namespace NBsoft.Wordzz.Hubs
 {
     public class GameHub : Hub
     {
-        private readonly IGameService gameService;
+        private readonly IGameService gameService;        
 
         public GameHub(IGameService gameService)
         {
@@ -20,7 +21,12 @@ namespace NBsoft.Wordzz.Hubs
         public async override Task OnConnectedAsync()
         {   
             var user = Context.User?.Identities.FirstOrDefault()?.Name;
-            ClientHandler.ConnectedIds.Add(Context.ConnectionId, user);
+            ClientHandler.AddClient(new WordzzClient {
+                ConnectionDate = DateTime.UtcNow,
+                ConnectionId = Context.ConnectionId,
+                UserName = user
+            });
+
             Console.WriteLine($"{DateTime.UtcNow:HH:mm:ss.fff} - Client Connected: {user}[{Context.ConnectionId}]");
             await Clients.Others.SendAsync("connected", user);
             await base.OnConnectedAsync();
@@ -28,10 +34,10 @@ namespace NBsoft.Wordzz.Hubs
 
         public async override Task OnDisconnectedAsync(Exception exception)
         {
-            var user = ClientHandler.ConnectedIds[Context.ConnectionId];
-            Console.WriteLine($"{DateTime.UtcNow:HH:mm:ss.fff} - Client Disconnected: {user}[{Context.ConnectionId}]");
-            ClientHandler.ConnectedIds.Remove(Context.ConnectionId);
-            await Clients.Others.SendAsync("disconnected", user);
+            var user = ClientHandler.Find(Context.ConnectionId);
+            Console.WriteLine($"{DateTime.UtcNow:HH:mm:ss.fff} - Client Disconnected: {user.UserName}[{Context.ConnectionId}]");
+            ClientHandler.RemoveClient(Context.ConnectionId);
+            await Clients.Others.SendAsync("disconnected", user.UserName);
             await base.OnDisconnectedAsync(exception);
         }
 
@@ -42,23 +48,65 @@ namespace NBsoft.Wordzz.Hubs
                 
         public async Task<IEnumerable<string>> GetOnlineContacts() 
         {
-            var userId = ClientHandler.ConnectedIds[Context.ConnectionId];
-            var allContacts = await gameService.GetContacts(userId);
-            var onlineContacts = ClientHandler.ConnectedIds
-                .Where(c => allContacts.Contains(c.Value))
-                .Select(c => c.Value)
+            var client = ClientHandler.Find(Context.ConnectionId);
+            var allContacts = await gameService.GetContacts(client.UserName);
+            var onlineContacts = ClientHandler.Clients
+                .Where(c => allContacts.Contains(c.UserName))
+                .Select(c => c.UserName)
                 .Distinct();
             return onlineContacts;
         }
 
+        public Task<IEnumerable<IGame>> GetActiveGames()
+        {
+            var client = ClientHandler.Find(Context.ConnectionId);
+            var games = gameService.GetActiveGames(client.UserName);
+            return Task.FromResult(games);
+        }
 
-        public async Task<string> NewGame(string language , string opposingPlayer, int size = 15)
+
+        public async Task<string> ChallengeGame(string language , string challengedPlayer, int size = 15)
         {
             if (string.IsNullOrEmpty(language))
                 language = "en-us";
-            var userId = ClientHandler.ConnectedIds[Context.ConnectionId];
-            var game = await gameService.NewGame(language, userId, opposingPlayer, size);            
-            return game.Id;
+            
+            var challenger = ClientHandler.Find(Context.ConnectionId);
+            var opposer = ClientHandler.FindByUserName(challengedPlayer);
+
+            if (opposer == null)
+            {
+                return null;
+            }
+            var challengeId = gameService.ChallengeGame(language, challenger.UserName, opposer.UserName, size);
+            string username = challenger.UserName;
+
+            await SendChallengePlayer(opposer.ConnectionId, challengeId, challenger.UserName, language, size);
+
+            return challengeId;
+        }
+        public async Task<string> ChallengeAccept(string queueId, bool accept)
+        {
+            if (string.IsNullOrEmpty(queueId))
+                return null;
+
+            var challengedPlayer = ClientHandler.Find(Context.ConnectionId);
+            var queue = gameService.GetQueuedGame(queueId);
+            var game = await gameService.AcceptChallenge(challengedPlayer.UserName, queueId, accept);
+                        
+            var challengerConnection = ClientHandler.FindByUserName(queue.Player1);            
+            await SendChallengeAccepted(challengerConnection.ConnectionId, queue.Id, accept, game?.Id);
+            return game?.Id;
+        }
+
+
+        private async Task SendChallengePlayer(string connectionId, string id, string username, string language, int size )
+        {            
+            await Clients.Client(connectionId).SendAsync("newChallenge", id, username, language, size);
+        }
+        private async Task SendChallengeAccepted(string connectionId, string challengeId, bool accept, string gameId)
+        {
+            Console.WriteLine("challengeAccepted:", challengeId, accept);
+            await Clients.Client(connectionId).SendAsync("challengeAccepted", challengeId, accept, gameId);
         }
     }
 }

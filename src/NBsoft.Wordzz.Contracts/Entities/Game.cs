@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace NBsoft.Wordzz.Contracts.Entities
 {
@@ -14,13 +13,13 @@ namespace NBsoft.Wordzz.Contracts.Entities
         public string CurrentPlayer { get; set; }
         public DateTime CurrentStart { get; set; }
         public DateTime? CurrentPauseStart { get; set; }
-        public IEnumerable<ILetter> LetterBag { get; set; }
+        public ILetterBag LetterBag { get; set; }
 
         public IGamePlayer GetPlayer(string userName)
         {
-            if (Player01.Player == userName)
+            if (Player01.UserName == userName)
                 return Player01;
-            else if (Player02.Player == userName)
+            else if (Player02.UserName == userName)
                 return Player02;
             else return null;
         }

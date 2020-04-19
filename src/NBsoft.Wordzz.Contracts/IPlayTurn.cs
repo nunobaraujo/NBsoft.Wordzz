@@ -4,7 +4,7 @@ namespace NBsoft.Wordzz.Contracts
 {
     public interface IPlayTurn
     {
-        IBoardWord Word { get; }
+        IWordPlay Word { get; }
         TimeSpan PlayTime { get; }
     }
 }

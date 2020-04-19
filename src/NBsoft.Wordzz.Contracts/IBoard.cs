@@ -7,6 +7,6 @@ namespace NBsoft.Wordzz.Contracts
         int Rows { get; }
         int Columns { get; }
         IBoardTile[] Tiles { get; }
-        IList<IBoardWord> Words { get; }
+        IList<IWordPlay> Words { get; }
     }
 }

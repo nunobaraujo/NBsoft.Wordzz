@@ -63,7 +63,7 @@ namespace NBsoft.Wordzz.Controllers
             string accessToken = await HttpContext.GetToken();
             var session = await _sessionService.GetSession(accessToken);
             if (session == null)
-                return BadRequest(new { message = "Session expired. Please login again." });
+                return Unauthorized(new { message = "Session expired. Please login again." });
 
             var settings = await _userRepository.GetSettings(session.UserId);
             var mainSettings = settings?.MainSettings?.FromJson<MainSettings>();
@@ -79,7 +79,7 @@ namespace NBsoft.Wordzz.Controllers
             string accessToken = await HttpContext.GetToken();
             var session = await _sessionService.GetSession(accessToken);
             if (session == null)
-                return BadRequest(new { message = "Session expired. Please login again." });
+                return Unauthorized(new { message = "Session expired. Please login again." });
 
             var newContact = await _userRepository.FindUser(userId);
             if (newContact == null)
@@ -103,7 +103,7 @@ namespace NBsoft.Wordzz.Controllers
             string accessToken = await HttpContext.GetToken();
             var session = await _sessionService.GetSession(accessToken);
             if (session == null)
-                return BadRequest(new { message = "Session expired. Please login again." });
+                return Unauthorized(new { message = "Session expired. Please login again." });
 
             var removedContact = await _userRepository.FindUser(userId);
             if (removedContact == null)
@@ -131,7 +131,7 @@ namespace NBsoft.Wordzz.Controllers
             string accessToken = await HttpContext.GetToken();
             var session = await _sessionService.GetSession(accessToken);
             if (session == null)
-                return BadRequest(new { message = "Session expired. Please login again." });
+                return Unauthorized(new { message = "Session expired. Please login again." });
 
             var contactList = await _userRepository.GetContacts(session.UserId);
             return Ok(contactList);
