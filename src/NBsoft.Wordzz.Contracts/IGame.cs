@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace NBsoft.Wordzz.Contracts
 {
@@ -6,14 +7,20 @@ namespace NBsoft.Wordzz.Contracts
     {
         string Id { get; }
         string Language { get; }
+        DateTime CreationDate { get; }
         IBoard Board { get; }
+
+
+        string CurrentPlayer { get; }
         IGamePlayer Player01 { get; }
         IGamePlayer Player02 { get; }        
+
         GameStatus Status { get; }
-        ILetterBag LetterBag { get; set; }
-        string CurrentPlayer { get; }
+        ILetterBag LetterBag { get; set; }        
         DateTime CurrentStart { get; }
         DateTime? CurrentPauseStart { get; }
+
+        IEnumerable<IPlayMove> PlayMoves { get; }
 
         IGamePlayer GetPlayer(string userName);
     }

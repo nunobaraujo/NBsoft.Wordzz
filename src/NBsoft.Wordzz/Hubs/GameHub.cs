@@ -35,7 +35,7 @@ namespace NBsoft.Wordzz.Hubs
         public async override Task OnDisconnectedAsync(Exception exception)
         {
             var user = ClientHandler.Find(Context.ConnectionId);
-            Console.WriteLine($"{DateTime.UtcNow:HH:mm:ss.fff} - Client Disconnected: {user.UserName}[{Context.ConnectionId}]");
+            Console.WriteLine($"{DateTime.UtcNow:HH:mm:ss.fff} - Client Disconnected: {user?.UserName}[{Context?.ConnectionId}]");
             ClientHandler.RemoveClient(Context.ConnectionId);
             await Clients.Others.SendAsync("disconnected", user.UserName);
             await base.OnDisconnectedAsync(exception);

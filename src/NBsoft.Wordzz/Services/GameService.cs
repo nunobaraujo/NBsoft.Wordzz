@@ -126,23 +126,25 @@ namespace NBsoft.Wordzz.Services
             {
                 Id = Guid.NewGuid().ToString(),
                 Language = language,
+                CreationDate = DateTime.UtcNow,
                 Board = GenerateBoard(size),
                 LetterBag = letterbag,
+                PlayMoves = new List<IPlayMove>(),
                 Player01 = new GamePlayer
                 {
                     UserName = player01.UserName,
                     FirstName = p1Details.FirstName,
-                    LastName = p1Details.LastName,
-                    History = new List<IPlayTurn>(),
-                    Rack = letterbag.TakeLetters(7)
-                },
+                    LastName = p1Details.LastName,                    
+                    Rack = letterbag.TakeLetters(7),
+                    Score = 0
+                                   },
                 Player02 = new GamePlayer
                 {
                     UserName = player02.UserName,
                     FirstName = p2Details.FirstName,
-                    LastName = p2Details.LastName,
-                    History = new List<IPlayTurn>(),
-                    Rack = letterbag.TakeLetters(7)
+                    LastName = p2Details.LastName,                    
+                    Rack = letterbag.TakeLetters(7),
+                    Score = 0
                 },
                 CurrentPlayer = player01.UserName,
                 Status = GameStatus.Ongoing,
@@ -177,8 +179,7 @@ namespace NBsoft.Wordzz.Services
             var board = new Board();
             board.Rows = size;
             board.Columns = size;
-            board.Words = new List<IWordPlay>();
-
+            
             var tiles = new List<BoardTile>();
             for (int y = 1; y <= board.Columns; y++)
             {

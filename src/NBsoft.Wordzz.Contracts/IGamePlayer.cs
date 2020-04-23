@@ -6,8 +6,7 @@ namespace NBsoft.Wordzz.Contracts
     {
         string UserName { get; }
         string FirstName { get; }
-        string LastName { get; }
-        IEnumerable<IPlayTurn> History { get; }
+        string LastName { get; }        
         IEnumerable<ILetter> Rack { get; }        
         int Score { get; }
     }
