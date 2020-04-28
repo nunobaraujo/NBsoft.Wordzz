@@ -1,5 +1,8 @@
-﻿using System;
+﻿using NBsoft.Wordzz.Contracts;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace NBsoft.Wordzz.Extensions
 {
@@ -142,5 +145,6 @@ namespace NBsoft.Wordzz.Extensions
             }
 
         }
+        
     }
 }

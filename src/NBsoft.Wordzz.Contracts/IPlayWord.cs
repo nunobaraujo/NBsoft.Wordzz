@@ -4,5 +4,7 @@
     {        
         IPlayLetter[] Letters { get; }
         int Score { get; }
+        int RawScore { get; }
+        string Description { get; }
     }
 }

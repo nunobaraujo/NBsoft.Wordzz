@@ -7,6 +7,8 @@ namespace NBsoft.Wordzz.Contracts.Entities
     {
         public int Rows { get; set; }
         public int Columns { get; set; }
-        public IBoardTile[] Tiles { get; set; }        
+        public BoardTile[] Tiles { get; set; }
+
+        IBoardTile[] IBoard.Tiles => Tiles;
     }
 }

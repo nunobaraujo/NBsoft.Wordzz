@@ -2,6 +2,7 @@
 using NBsoft.Logs.Interfaces;
 using NBsoft.Wordzz.Contracts;
 using NBsoft.Wordzz.Contracts.Entities;
+using NBsoft.Wordzz.Contracts.Results;
 using NBsoft.Wordzz.Core.Models;
 using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
@@ -17,19 +18,22 @@ namespace NBsoft.Wordzz.Services
     internal class GameService : IGameService
     {
         private readonly IUserRepository userRepository;
-        private readonly IWordRepository wordRepository;
+        private readonly ILexiconService lexiconService;
+
+
         private readonly List<IGame> activeGames;
         private readonly List<IGameQueue> gameQueue;
         private readonly ILogger logger;
+                
 
-        public GameService(IUserRepository userRepository, IWordRepository wordRepository, ILogger logger)
+        public GameService(IUserRepository userRepository, ILexiconService lexiconService, ILogger logger)
         {
             this.userRepository = userRepository;
-            this.wordRepository = wordRepository;
+            this.lexiconService = lexiconService;
             this.logger = logger;
 
             activeGames = new List<IGame>();
-            gameQueue = new List<IGameQueue>();
+            gameQueue = new List<IGameQueue>();            
         }
 
         public Task<IEnumerable<string>> GetContacts(string userId) => userRepository.GetContacts(userId);
@@ -38,8 +42,9 @@ namespace NBsoft.Wordzz.Services
 
         public IGameQueue GetQueuedGame(string queueId) => gameQueue.FirstOrDefault(q => q.Id == queueId);        
 
-        public string ChallengeGame(string language, string player1, string player2, int size)
+        public async Task<string> ChallengeGame(string language, string player1, string player2, int size)
         {
+            await lexiconService.LoadDictionary(language);            
             var queue = QueueGame(language, player1, player2, size);
             return queue.Id;
         }
@@ -53,11 +58,98 @@ namespace NBsoft.Wordzz.Services
                 return null;
             }
 
+            //Load lexicon if not in memory yet
+            var q = GetQueuedGame(queueId);            
             return await StartGame(queueId);
         }
-       
+
+        public async Task<PlayResult> Play(string gameId, string username, PlayLetter[] letters)
+        {
+            var game = activeGames.SingleOrDefault(g => g.Id == gameId) as Game;
+            if (game == null)
+            {
+                string message = $"Invalid game: {gameId}";
+                await logger.WarningAsync(message, context: username);
+                return new PlayResult { MoveResult = message };
+            }
+            
+            //  Play must be done by current player
+            var player = game.GetPlayer(username);
+            if (player.UserName != game.CurrentPlayer)
+            {
+                string message = $"Game Play received not from current player. (Game:{gameId} Current Player:{game.CurrentPlayer}) ";
+                await logger.WarningAsync(message, context: username);
+                return new PlayResult { MoveResult = message };
+            }
+
+            // Validate Move
+            var validationResult = await game.ValidateMove(letters, lexiconService);
+            if (validationResult.Result != "OK")
+            {
+                string message = $"Invalid move: {validationResult.Result} ";
+                await logger.InfoAsync(message, context: username);
+                return new PlayResult { MoveResult = message };
+            }
+                        
+            // Score the words
+            var scoreWords = game.ScoreMove(validationResult.Words, letters);
+
+            // Apply description
+            var completeWords = new List<IPlayWord>();
+            foreach (var wordItem in scoreWords)
+            {
+                var cWord = await wordItem.ApplyDescription(game.Language, lexiconService);
+                completeWords.Add(cWord);
+            }            
+
+            // Create move entity
+            var playFinish = new DateTime(DateTime.UtcNow.Ticks, DateTimeKind.Utc);
+            var move = new PlayMove
+            {
+                Letters = letters,
+                Player = player.UserName,
+                PlayStart = new DateTime(game.CurrentStart.Ticks, DateTimeKind.Utc),
+                PlayFinish = playFinish,
+                Words = completeWords.ToArray(),
+                Score = completeWords.Sum(w => w.Score)
+            };            
+
+            // Update game time, and current player
+            var opponent = game.Player01.UserName == player.UserName ? game.Player02 : game.Player01;
+            game.CurrentStart = playFinish;
+            game.CurrentPlayer = opponent.UserName;
+
+            // Update game moves
+            var moves = game.PlayMoves.ToList();
+            moves.Add(move);
+            game.PlayMoves = moves;
+
+            // TODO: update player rack
+            var ePlayer = player as GamePlayer;
+            var eRack = player.Rack.ToList();
+            var lettersToRemove = letters.Select(l => l.Letter).ToList();
+            foreach (var letter in lettersToRemove)
+            {
+                var rLetter = eRack.First(l => l.Char == letter.Letter.Char);
+                eRack.Remove(rLetter);
+            }
+            var lettersNeeded = 7 - eRack.Count();
+            var newLetters = game.LetterBag.TakeLetters(lettersNeeded);
+            ePlayer.Rack = eRack.Concat(newLetters);
+            ePlayer.Score = moves.Where(m => m.Player == ePlayer.UserName).Sum(m => m.Score);
+
+            // TODO: save game state to DB
 
 
+            logger.Info($"Game move letter:[{letters.GetString()}] Words:[{string.Join(",", move.Words.Select(w => w.GetString() + "=" + w.Score))}]",context: player.UserName);
+            return new PlayResult
+            {
+                MoveResult = "OK",
+                PlayMove = move
+            }; 
+        }
+
+      
         private IGameQueue QueueGame(string language, string player1UserName, string player2UserName, int size)
         {
             /* 
@@ -114,12 +206,19 @@ namespace NBsoft.Wordzz.Services
         }
         private async Task<IGame> CreateGame(string language, IUser player01, IUser player02, int size)
         {
-            var lexicon = await wordRepository.GetDictionary(language);
+            var lexicon = await lexiconService.GetDictionary(language);
             if (lexicon == null)
                 throw new ApplicationException($"Invalid language [{language}]");
 
             var p1Details = await userRepository.GetDetails(player01.UserName);
             var p2Details = await userRepository.GetDetails(player02.UserName);
+
+            // Remove empty space from available letters
+            var lexiconLetters = new System.Globalization.CultureInfo(lexicon.Language)
+                .GetLetters()
+                .ToList();
+            var emptySpace = lexiconLetters.Single(c => c == ' ');
+            lexiconLetters.Remove(emptySpace);
 
             var letterbag = new LetterBag(language);
             var game = new Game
@@ -148,7 +247,8 @@ namespace NBsoft.Wordzz.Services
                 },
                 CurrentPlayer = player01.UserName,
                 Status = GameStatus.Ongoing,
-                CurrentStart = DateTime.UtcNow
+                CurrentStart = DateTime.UtcNow,
+                AvailableLetters = lexiconLetters
             };            
             return game;
         }
@@ -188,7 +288,7 @@ namespace NBsoft.Wordzz.Services
                     tiles.Add(new BoardTile { X = x, Y = y, Bonus = BonusType.Regular });
                 }
             }
-            board.Tiles = tiles.Select(x => (IBoardTile)x).ToArray();
+            board.Tiles = tiles.ToArray();
 
             var newBoard = board.ApplyBonusTiles();
 
@@ -200,6 +300,6 @@ namespace NBsoft.Wordzz.Services
             throw new NotImplementedException();
         }
 
-      
+        
     }
 }

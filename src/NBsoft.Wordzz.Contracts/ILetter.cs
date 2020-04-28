@@ -4,5 +4,6 @@
     {
         char Char { get; }
         int Value { get; }
+        bool IsBlank { get; }
     }
 }

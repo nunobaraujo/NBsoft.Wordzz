@@ -17,7 +17,8 @@ namespace NBsoft.Wordzz.Contracts.Entities
         public DateTime? CurrentPauseStart { get; set; }
         public ILetterBag LetterBag { get; set; }
         public IEnumerable<IPlayMove> PlayMoves { get; set; }
-                
+        public IEnumerable<char> AvailableLetters { get; set; }
+
         public IGamePlayer GetPlayer(string userName)
         {
             if (Player01.UserName == userName)

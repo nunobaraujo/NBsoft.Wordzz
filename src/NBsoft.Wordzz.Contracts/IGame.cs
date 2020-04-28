@@ -10,7 +10,6 @@ namespace NBsoft.Wordzz.Contracts
         DateTime CreationDate { get; }
         IBoard Board { get; }
 
-
         string CurrentPlayer { get; }
         IGamePlayer Player01 { get; }
         IGamePlayer Player02 { get; }        
@@ -21,6 +20,7 @@ namespace NBsoft.Wordzz.Contracts
         DateTime? CurrentPauseStart { get; }
 
         IEnumerable<IPlayMove> PlayMoves { get; }
+        IEnumerable<char> AvailableLetters { get; }
 
         IGamePlayer GetPlayer(string userName);
     }

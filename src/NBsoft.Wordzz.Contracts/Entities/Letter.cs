@@ -4,5 +4,6 @@
     {
         public int Value { get; set; }
         public char Char { get; set; }
+        public bool IsBlank { get; set; }
     }
 }

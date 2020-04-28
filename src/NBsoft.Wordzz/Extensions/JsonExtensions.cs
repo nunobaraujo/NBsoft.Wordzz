@@ -1,4 +1,9 @@
-﻿namespace NBsoft.Wordzz.Extensions
+﻿using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace NBsoft.Wordzz.Extensions
 {
     public static class JsonExtensions
     {
@@ -9,6 +14,18 @@
         public static T FromJson<T>(this string jsonString)
         {
             return Newtonsoft.Json.JsonConvert.DeserializeObject<T>(jsonString);
+        }
+
+        public static IEnumerable<string> GetAllValues(this string jsonString, string key)
+        {
+            JObject jObject = JObject.Parse(jsonString);
+                     
+            // .. - recursive descent
+            var classNameTokens = jObject.SelectTokens($"..{key}");
+            var values = classNameTokens.Select(x => {
+                return (x as JArray).First?.ToString();
+            });
+            return values.ToArray();
         }
     }
 }

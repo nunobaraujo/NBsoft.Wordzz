@@ -67,8 +67,9 @@ namespace NBsoft.Wordzz.Entities
                 result.Add(new Letter
                 {
                     Char = letter,
-                    Value = letter.LetterValue(language)
-                });
+                    Value = letter.LetterValue(language),
+                    IsBlank = letter == ' '
+                }); ;
             }
             return result;
         }

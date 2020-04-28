@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using NBsoft.Logs;
 using NBsoft.Logs.Interfaces;
 using NBsoft.Wordzz.Contracts;
 using NBsoft.Wordzz.Contracts.Entities;
@@ -121,14 +122,45 @@ namespace NBsoft.Wordzz.Repositories
             throw new NotImplementedException();
         }
 
-        public Task<IWord> Get(ILexicon lexicon, string word)
+        public async Task<IWord> Get(ILexicon lexicon, string word)
         {
-            throw new NotImplementedException();
+            try
+            {
+                if (lexicon == null)
+                    throw new ArgumentNullException(nameof(lexicon));
+                if (string.IsNullOrEmpty(word))
+                    throw new ArgumentNullException(nameof(word));
+
+
+                using var cnn = _createdDbConnection();
+                var query = @"SELECT * FROM Word WHERE Language = @Language AND Name=@Name";
+                return (await cnn.QueryAsync<Word>(query, new { lexicon.Language, Name = word.ToUpper() }))
+                    .SingleOrDefault();
+            }
+            catch (Exception ex)
+            {
+                await _log?.WriteErrorAsync(nameof(UserRepository), nameof(GetAllWords), null, null, ex);
+                throw;
+            }
         }
 
-        public Task<IWord> Get(uint wordId)
+        public async Task<IWord> Get(uint wordId)
         {
-            throw new NotImplementedException();
+            try
+            {
+                if (wordId < 1)
+                    throw new ArgumentOutOfRangeException(nameof(wordId));
+                
+                using var cnn = _createdDbConnection();
+                var query = @"SELECT * FROM Word WHERE Id = @Id";
+                return (await cnn.QueryAsync<Word>(query, new { Id = wordId }))
+                    .SingleOrDefault();
+            }
+            catch (Exception ex)
+            {
+                await _log?.WriteErrorAsync(nameof(UserRepository), nameof(GetAllWords), null, null, ex);
+                throw;
+            }
         }
 
         public async Task<ILexicon> GetDictionary(string language)
@@ -145,22 +177,59 @@ namespace NBsoft.Wordzz.Repositories
             }
             catch (Exception ex)
             {
-                await _log?.WriteErrorAsync(nameof(UserRepository), nameof(ListWords), null, null, ex);
+                await _log?.WriteErrorAsync(nameof(UserRepository), nameof(GetDictionary), null, null, ex);
                 throw;
             }
         }
 
-        public Task<IEnumerable<ILexicon>> ListDictionaries()
+        public async Task<IEnumerable<ILexicon>> ListDictionaries()
         {
-            throw new NotImplementedException();
+            try
+            {   
+                using var cnn = _createdDbConnection();
+                var query = @"SELECT * FROM Lexicon";
+                return await cnn.QueryAsync<Lexicon>(query);
+                    
+            }
+            catch (Exception ex)
+            {
+                await _log?.ErrorAsync("Error reading from [Lexicon] table",ex);
+                throw;
+            }
         }
 
-        public async Task<IEnumerable<string>> ListWords(ILexicon lexicon)
+        public async Task<IEnumerable<IWord>> GetAllWords(string language)
         {
             try
             {
+                if (string.IsNullOrEmpty(language))
+                    throw new ArgumentNullException(nameof(language));
+
+                var lexicon = await GetDictionary(language);
                 if (lexicon == null)
-                    throw new ArgumentNullException(nameof(lexicon));
+                    throw new ArgumentException($"Invalid language: {language}");
+
+                using var cnn = _createdDbConnection();
+                var query = @"SELECT * FROM Word WHERE Language = @Language";
+                return await cnn.QueryAsync<Word>(query, new { lexicon.Language });
+            }
+            catch (Exception ex)
+            {
+                await _log?.WriteErrorAsync(nameof(UserRepository), nameof(GetAllWords), null, null, ex);
+                throw;
+            }
+        }
+        public async Task<IEnumerable<string>> ListWords(string language)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(language))
+                    throw new ArgumentNullException(nameof(language));
+
+                var lexicon = await GetDictionary(language);
+                if (lexicon == null)
+                    throw new ArgumentException($"Invalid language: {language}");
+
 
                 using var cnn = _createdDbConnection();
                 var query = @"SELECT Name FROM Word WHERE Language = @Language";
@@ -174,9 +243,24 @@ namespace NBsoft.Wordzz.Repositories
             }
         }
 
-        public Task<IWord> Update(IWord word)
+        public async Task<IWord> Update(IWord word)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var fields = $"{_getSqlUpdateFields(typeof(Word))}"
+                .Replace("Id=@Id,", "");
+                var query = $"UPDATE Word SET {fields} WHERE Id=@Id";
+
+                using var cnn = _createdDbConnection();
+                var res = await cnn.ExecuteAsync(query, word);
+
+                return await Get(word.Id);
+            }
+            catch (Exception ex)
+            {
+                await _log?.ErrorAsync($"Error updating word [{word}]", ex);
+                throw;
+            }
         }
     }
 }

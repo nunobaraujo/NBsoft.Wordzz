@@ -81,13 +81,12 @@ namespace NBsoft.Wordzz.Controllers
             var session = await _sessionService.GetSession(accessToken);
             if (session == null)
                 return Unauthorized(new { message = "Session expired. Please login again." });
-
-            var lexicon = await _wordRepository.GetDictionary(language);
-            var words = await _wordRepository.ListWords(lexicon);
+                        
+            var words = await _wordRepository.ListWords(language);
 
             var fileBytes = Core.Compression.Zip.Compress(string.Join(",", words));
 
-            return File(fileBytes, MediaTypeNames.Application.Octet, $"{lexicon.Language}.zip");
+            return File(fileBytes, MediaTypeNames.Application.Octet, $"{language}.zip");
             
 
         }

@@ -63,6 +63,7 @@ CREATE TABLE `Word` (
     Name			    char(255)     	    NOT NULL,        
     Description			text     	        NULL,        
     INDEX word_index (Language),
+    INDEX wordl_index (Name(16)),
     FOREIGN KEY (Language) 		REFERENCES Lexicon(Language)	ON DELETE RESTRICT
 );
 

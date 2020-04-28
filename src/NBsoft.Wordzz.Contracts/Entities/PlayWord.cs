@@ -7,5 +7,7 @@ namespace NBsoft.Wordzz.Contracts.Entities
     {
         public IPlayLetter[] Letters { get; set; }
         public int Score { get; set; }
+        public int RawScore { get; set; }
+        public string Description { get; set; }
     }
 }

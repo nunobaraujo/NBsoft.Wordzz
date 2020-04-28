@@ -24,6 +24,7 @@ namespace NBsoft.Wordzz.Extensions
         {
             return src.AddSingleton<ILicenseService, LicenseService>()
                 .AddScoped<ISessionService, SessionService>()
+                .AddSingleton<ILexiconService, LexiconService>()
                 .AddSingleton<IGameService, GameService>();
 
         }

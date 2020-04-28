@@ -11,7 +11,8 @@ namespace NBsoft.Wordzz.Core.Repositories
         Task<bool> Delete(IWord word);
         Task<IWord> Get(uint wordId);
         Task<IWord> Get(ILexicon lexicon, string word);        
-        Task<IEnumerable<string>> ListWords(ILexicon lexicon);
+        Task<IEnumerable<string>> ListWords(string language);
+        Task<IEnumerable<IWord>> GetAllWords(string language);
 
         Task<ILexicon> GetDictionary(string language);
         Task<IEnumerable<ILexicon>> ListDictionaries();

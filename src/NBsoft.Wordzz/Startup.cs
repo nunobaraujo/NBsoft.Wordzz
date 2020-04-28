@@ -18,6 +18,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using NBsoft.Wordzz.Services;
 using NBsoft.Wordzz.Hubs;
+using NBsoft.Logs.Sql;
 
 namespace NBsoft.Wordzz
 {
@@ -143,7 +144,7 @@ namespace NBsoft.Wordzz
         {
             var loggerAggregate = new LoggerAggregate();
             loggerAggregate.AddLogger(new ConsoleLogger());
-            loggerAggregate.AddLogger(new FileLogger(".\\Logs"));
+            loggerAggregate.AddLogger(new MySqlLogger(settings.Wordzz.Db.LogConnString, "wordzzlogs"));
             
 
             services.AddSingleton<Logs.Interfaces.ILogger>(loggerAggregate);
