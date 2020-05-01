@@ -7,7 +7,7 @@ namespace NBsoft.Wordzz.Core.Services
     {
         Task<ILexicon> GetDictionary(string language);
         Task<bool> ValidateWord(string language, string word);
-        Task<IWord> GetWordInfo(string language, string word);
+        Task<IWord> GetWordInfo(string language, string words);
         Task LoadDictionary(string language);
     }
 }

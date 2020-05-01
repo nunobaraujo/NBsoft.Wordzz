@@ -39,6 +39,17 @@ namespace NBsoft.Wordzz.Services
         public Task<IEnumerable<string>> GetContacts(string userId) => userRepository.GetContacts(userId);
 
         public IEnumerable<IGame> GetActiveGames(string userName) => activeGames.Where(x => x.Player01.UserName == userName || x.Player02.UserName == userName);
+        public IEnumerable<string> GetActiveGameOpponents(string userName) 
+        {
+            var userGames = GetActiveGames(userName);
+            var opponents = userGames.Select(x => x.Player01.UserName)
+                .Concat(userGames.Select(x => x.Player02.UserName))
+                .Distinct()
+                .ToList();
+            opponents.Remove(userName);
+
+            return opponents;
+        }
 
         public IGameQueue GetQueuedGame(string queueId) => gameQueue.FirstOrDefault(q => q.Id == queueId);        
 
@@ -69,7 +80,7 @@ namespace NBsoft.Wordzz.Services
             if (game == null)
             {
                 string message = $"Invalid game: {gameId}";
-                await logger.WarningAsync(message, context: username);
+                await logger.WarningAsync(message, context: $"{gameId}:{username}");
                 return new PlayResult { MoveResult = message };
             }
             
@@ -78,8 +89,34 @@ namespace NBsoft.Wordzz.Services
             if (player.UserName != game.CurrentPlayer)
             {
                 string message = $"Game Play received not from current player. (Game:{gameId} Current Player:{game.CurrentPlayer}) ";
-                await logger.WarningAsync(message, context: username);
+                await logger.WarningAsync(message, context: $"{gameId}:{username}");
                 return new PlayResult { MoveResult = message };
+            }
+
+            // Played letters must be int player rack
+            var rack = player.Rack.Select(r => r.Char).ToList();
+            foreach (var letter in letters)
+            {
+                if (letter.Letter.Letter.IsBlank) 
+                {
+                    var blankInRack = rack.Contains(' ');
+                    if (!blankInRack)
+                    {
+                        string message = "Player rack doesn't contain blank tiles";
+                        await logger.InfoAsync(message, context: $"{gameId}:{username}");
+                        return new PlayResult { MoveResult = message };
+                    }
+                }
+                else
+                {
+                    var letterInRack = rack.Contains(letter.Letter.Letter.Char);
+                    if (!letterInRack)
+                    {
+                        string message = $"Player rack doesn't contain {letter.Letter.Letter.Char}";
+                        await logger.InfoAsync(message, context: $"{gameId}:{username}");
+                        return new PlayResult { MoveResult = message };
+                    }
+                }
             }
 
             // Validate Move
@@ -87,10 +124,10 @@ namespace NBsoft.Wordzz.Services
             if (validationResult.Result != "OK")
             {
                 string message = $"Invalid move: {validationResult.Result} ";
-                await logger.InfoAsync(message, context: username);
+                //await logger.InfoAsync(message, context: username);
                 return new PlayResult { MoveResult = message };
             }
-                        
+
             // Score the words
             var scoreWords = game.ScoreMove(validationResult.Words, letters);
 
@@ -98,8 +135,10 @@ namespace NBsoft.Wordzz.Services
             var completeWords = new List<IPlayWord>();
             foreach (var wordItem in scoreWords)
             {
-                var cWord = await wordItem.ApplyDescription(game.Language, lexiconService);
-                completeWords.Add(cWord);
+                var wordInfoWord = await lexiconService.GetWordInfo(game.Language, wordItem.GetString());
+                var editableWord = wordItem.ToDto<PlayWord>();
+                editableWord.Description = wordInfoWord.Description;                
+                completeWords.Add(editableWord);
             }            
 
             // Create move entity
@@ -130,7 +169,9 @@ namespace NBsoft.Wordzz.Services
             var lettersToRemove = letters.Select(l => l.Letter).ToList();
             foreach (var letter in lettersToRemove)
             {
-                var rLetter = eRack.First(l => l.Char == letter.Letter.Char);
+                var rLetter = letter.Letter.IsBlank
+                    ? eRack.First(l => l.IsBlank)
+                    : eRack.First(l => l.Char == letter.Letter.Char);
                 eRack.Remove(rLetter);
             }
             var lettersNeeded = 7 - eRack.Count();
@@ -140,16 +181,69 @@ namespace NBsoft.Wordzz.Services
 
             // TODO: save game state to DB
 
-
-            logger.Info($"Game move letter:[{letters.GetString()}] Words:[{string.Join(",", move.Words.Select(w => w.GetString() + "=" + w.Score))}]",context: player.UserName);
+            //logger.Info($"Game move letter:[{letters.GetString()}] Words:[{string.Join(",", move.Words.Select(w => w.GetString() + "=" + w.Score))}]",context: player.UserName);
+            await logger.InfoAsync($"PLAY! = Duration:[{Math.Round((move.PlayFinish.Value - move.PlayStart).TotalMinutes,2)}] Letters:[{letters.GetString()}] Words:[{string.Join(",", move.Words.Select(w => w.GetString() + "=" + w.Score))}]", context: $"{gameId}:{username}");
             return new PlayResult
             {
                 MoveResult = "OK",
                 PlayMove = move
             }; 
         }
+        public async Task<PlayResult> Pass(string gameId, string username)
+        {
+            var game = activeGames.SingleOrDefault(g => g.Id == gameId) as Game;
+            if (game == null)
+            {
+                string message = $"Invalid game: {gameId}";
+                await logger.WarningAsync(message, context: $"{username}:{gameId}");
+                return new PlayResult { MoveResult = message };
+            }
 
-      
+            //  Play must be done by current player
+            var player = game.GetPlayer(username);
+            if (player.UserName != game.CurrentPlayer)
+            {
+                string message = $"Game Play received not from current player. (Game:{gameId} Current Player:{game.CurrentPlayer}) ";
+                await logger.WarningAsync(message, context: $"{gameId}:{username}");
+                return new PlayResult { MoveResult = message };
+            }
+
+            
+            // Create move entity
+            var playFinish = new DateTime(DateTime.UtcNow.Ticks, DateTimeKind.Utc);
+            var move = new PlayMove
+            {
+                Letters = new IPlayLetter[0],
+                Player = player.UserName,
+                PlayStart = new DateTime(game.CurrentStart.Ticks, DateTimeKind.Utc),
+                PlayFinish = playFinish,
+                Words = new IPlayWord[0],
+                Score = 0
+            };
+
+            // Update game time, and current player
+            var opponent = game.Player01.UserName == player.UserName ? game.Player02 : game.Player01;
+            game.CurrentStart = playFinish;
+            game.CurrentPlayer = opponent.UserName;
+
+            // Update game moves
+            var moves = game.PlayMoves.ToList();
+            moves.Add(move);
+            game.PlayMoves = moves;
+                        
+
+            // TODO: save game state to DB
+
+
+            await logger.InfoAsync($"PASS! = Duration:[{Math.Round((move.PlayFinish.Value-move.PlayStart).TotalMinutes,2)}]", context: $"{gameId}:{username}");
+            return new PlayResult
+            {
+                MoveResult = "OK",
+                PlayMove = move
+            };
+        }
+
+
         private IGameQueue QueueGame(string language, string player1UserName, string player2UserName, int size)
         {
             /* 
@@ -183,7 +277,17 @@ namespace NBsoft.Wordzz.Services
                 gameQueue.Remove(q);
         }
 
-        private async Task<IGame> NewGame(string language, string player1UserName, string player2UserName, int size)
+        
+        private async Task<IGame> NewSoloGame(string language, string player1UserName, int aiLevel, int size)
+        {
+            var user1 = await userRepository.Get(player1UserName);
+            if (user1 == null)
+                throw new ApplicationException($"Invalid player 1 [{player1UserName}]");
+
+            return await CreateGame(language, user1, GetAI(aiLevel), size);
+
+        }
+        private async Task<IGame> NewMultiPlayerGame(string language, string player1UserName, string player2UserName, int size)
         {
             var user1 = await userRepository.Get(player1UserName);
             if (user1 == null)
@@ -194,15 +298,6 @@ namespace NBsoft.Wordzz.Services
                 throw new ApplicationException($"Invalid player 2 [{player2UserName}]");
 
             return await CreateGame(language, user1, user2, size);
-        }
-        private async Task<IGame> CreateSoloGame(string language, string player1UserName, int aiLevel, int size)
-        {
-            var user1 = await userRepository.Get(player1UserName);
-            if (user1 == null)
-                throw new ApplicationException($"Invalid player 1 [{player1UserName}]");
-
-            return await CreateGame(language, user1, GetAI(aiLevel), size);
-
         }
         private async Task<IGame> CreateGame(string language, IUser player01, IUser player02, int size)
         {
@@ -259,11 +354,12 @@ namespace NBsoft.Wordzz.Services
             if (q == null)
                 return null;
 
-            var game = await NewGame(q.Language, q.Player1, q.Player2, q.Size);
+            var game = await NewMultiPlayerGame(q.Language, q.Player1, q.Player2, q.Size);
             
             activeGames.Add(game);
             RemoveQueue(q.Id);
 
+            logger.Info($"Game Started = P1:{q.Player1} P2:{q.Player2} Language:{q.Language} Size:{q.Size}", context: game.Id);
             return game;
         }
         private void FinishGame(string gameId)

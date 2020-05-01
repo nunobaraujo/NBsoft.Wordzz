@@ -73,45 +73,45 @@ namespace NBsoft.Wordzz.Controllers
 
         [HttpPost]
         [Route("Contact/")]
-        [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
-        public async Task<IActionResult> AddContact([FromBody]string userId)
+        [ProducesResponseType(typeof(bool), (int)HttpStatusCode.OK)]
+        public async Task<IActionResult> AddContact([FromBody]ContactRequest request)
         {
             string accessToken = await HttpContext.GetToken();
             var session = await _sessionService.GetSession(accessToken);
             if (session == null)
                 return Unauthorized(new { message = "Session expired. Please login again." });
 
-            var newContact = await _userRepository.FindUser(userId);
+            var newContact = await _userRepository.FindUser(request.UserName);
             if (newContact == null)
-                return BadRequest(new { message = $"Contact doesn't exist: {userId}" });
+                return BadRequest(new { message = $"Contact doesn't exist: {request.UserName}" });
 
             var contactList = await _userRepository.GetContacts(session.UserId);
             if (contactList.Contains(newContact.UserName))
-                return BadRequest(new { message = $"Contact already in contact list: {userId}" });
+                return BadRequest(new { message = $"Contact already in contact list: {request.UserName}" });
 
             var added = await _userRepository.AddContact(session.UserId, newContact.UserName);
 
             await _log.InfoAsync($"New Contact Added: [{newContact.UserName}]", context: session.UserId);
-            return Ok(added);
+            return Ok(true);
         }
 
         [HttpDelete]
         [Route("Contact/")]
         [ProducesResponseType(typeof(bool), (int)HttpStatusCode.OK)]
-        public async Task<IActionResult> DeleteContact([FromBody]string userId)
+        public async Task<IActionResult> DeleteContact([FromQuery]ContactRequest request)
         {
             string accessToken = await HttpContext.GetToken();
             var session = await _sessionService.GetSession(accessToken);
             if (session == null)
                 return Unauthorized(new { message = "Session expired. Please login again." });
 
-            var removedContact = await _userRepository.FindUser(userId);
+            var removedContact = await _userRepository.FindUser(request.UserName);
             if (removedContact == null)
-                return BadRequest(new { message = $"Contact doesn't exist: {userId}" });
+                return BadRequest(new { message = $"Contact doesn't exist: {request.UserName}" });
 
             var contactList = await _userRepository.GetContacts(session.UserId);
             if (!contactList.Contains(removedContact.UserName))
-                return BadRequest(new { message = $"Contact not in contact list: {userId}" });
+                return BadRequest(new { message = $"Contact not in contact list: {request.UserName}" });
 
             var removed = await _userRepository.DeleteContact(session.UserId, removedContact.UserName);
             if (removed)
@@ -120,7 +120,7 @@ namespace NBsoft.Wordzz.Controllers
                 return Ok(removed);
             }
             else
-                return BadRequest(new { message = $"Failed to remove contact from contact list: {userId}" });
+                return BadRequest(new { message = $"Failed to remove contact from contact list: {request.UserName}" });
         }
 
         [HttpGet]

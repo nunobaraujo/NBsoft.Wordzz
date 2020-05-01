@@ -25,8 +25,8 @@ namespace NBsoft.Wordzz.Hubs
         public static WordzzClient FindByUserName(string userName)
         {
             var connections = clients.Where(c => c.UserName == userName);
-            if (connections == null)
-                return null;
+            if (connections == null || connections.Count() == 0)
+                return new WordzzClient();
             if (connections.Count() > 1)
                 return connections
                     .OrderByDescending(c => c.ConnectionDate)

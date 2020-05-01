@@ -15,8 +15,10 @@ namespace NBsoft.Wordzz.Core.Services
         Task<string> ChallengeGame(string language, string player1UserName, string player2UserName, int size);
         Task<IGame> AcceptChallenge(string challengedPlayer, string queueId, bool accept);
         IEnumerable<IGame> GetActiveGames(string userName);
+        IEnumerable<string> GetActiveGameOpponents(string userName);
 
         Task<PlayResult> Play(string gameId, string username, PlayLetter[] letters);
+        Task<PlayResult> Pass(string gameId, string username);
 
     }
 }

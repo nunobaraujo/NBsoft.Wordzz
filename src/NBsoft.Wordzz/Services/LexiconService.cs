@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Services
@@ -18,13 +19,17 @@ namespace NBsoft.Wordzz.Services
     internal class LexiconService : ILexiconService
     {
         private static object dictionaryLock = new object();
+        private static object apiLock = new object();
 
         private readonly IWordRepository wordRepository;
         private readonly ILogger logger;
         private readonly WordzzSettings settings;
-        private readonly Dictionary<string, IEnumerable<string>> dictionaries;
+        private readonly Dictionary<string, IEnumerable<string>> dictionaries;        
         
-        private IEnumerable<ILexicon> availableDictionaries;        
+        private IEnumerable<ILexicon> availableDictionaries;
+        
+        
+
 
         public LexiconService(ILogger logger, IWordRepository wordRepository, IOptions<WordzzSettings> settings)
         {
@@ -32,8 +37,10 @@ namespace NBsoft.Wordzz.Services
             this.wordRepository = wordRepository;
             this.settings = settings.Value;
             dictionaries = new Dictionary<string, IEnumerable<string>>();
-            availableDictionaries = new List<ILexicon>();
+            availableDictionaries = new List<ILexicon>();                     
         }
+
+
 
         public async Task<ILexicon> GetDictionary(string language)
         {
@@ -53,33 +60,13 @@ namespace NBsoft.Wordzz.Services
             if (wordResult == null)
                 return null;
 
+                        
             // get info from word API and save to DB
-            if (string.IsNullOrEmpty(wordResult.Description))
-            {
-                var newDescritiption ="";
-                try
-                {
-                    var culture = new System.Globalization.CultureInfo(language);
-                    newDescritiption = await GetAPIDescription(culture.Name, word);
-                    await logger.InfoAsync($"Aquired new word from API: [{word}] = [{newDescritiption}]");
-                }
-                catch (Exception ex) 
-                {
-                    newDescritiption = null;
-                    await logger.ErrorAsync("Error contacting dictionary API", ex);
-                }
-
-                if (!string.IsNullOrEmpty(newDescritiption))
-                {
-                    var editable = wordResult.ToDto<Word>();
-                    editable.Description = newDescritiption;
-                    wordResult = await wordRepository.Update(editable);
-                }
-
-            }
-
+            if (string.IsNullOrEmpty(wordResult.Description))            
+                return await DownloadWordInfo(wordResult);
             return wordResult;
         }
+                               
                 
         public async Task LoadDictionary(string language)
         {
@@ -111,7 +98,6 @@ namespace NBsoft.Wordzz.Services
             }
             return isValid;
         }
-
         private async Task<bool> ValidateLanguage(string language)
         {
             // if language doesnt exist reload from db
@@ -122,6 +108,33 @@ namespace NBsoft.Wordzz.Services
             if (!result)
                 await logger.WarningAsync($"Invalid language: {language}");
             return result;
+        }
+        
+        private async Task<IWord> DownloadWordInfo(IWord word)
+        {
+            string newDescritiption;
+            try
+            {
+                var culture = new System.Globalization.CultureInfo(word.Language);
+                newDescritiption = await GetAPIDescription(culture.Name, word.Name);
+                await logger.InfoAsync($"Aquired new word from API: [{word.Name}] = [{newDescritiption}]");
+            }
+            catch (Exception ex)
+            {
+                newDescritiption = null;
+                await logger.ErrorAsync("Error contacting dictionary API", ex);                
+            }
+
+            var editable = word.ToDto<Word>();
+            if (!string.IsNullOrEmpty(newDescritiption))
+            {                
+                editable.Description = newDescritiption;
+                await wordRepository.Update(editable);
+                return editable;
+            }
+            editable.Description = editable.Name;
+            return editable;
+
         }
         private async Task<string> GetAPIDescription(string language, string word)
         {   

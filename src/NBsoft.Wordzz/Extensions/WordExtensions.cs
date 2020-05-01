@@ -124,18 +124,7 @@ namespace NBsoft.Wordzz.Extensions
                 return -1;
             return src.Max(l => l.Tile.Y);
         }
-
-        
-        public static async Task<IPlayWord> ApplyDescription(this IPlayWord src, string language, ILexiconService lexiconService)
-        {
-            var retval = src.ToDto<PlayWord>();
-            var iWord = await lexiconService.GetWordInfo(language, src.GetString());
-            if (iWord != null)
-            {
-                retval.Description = iWord.Description;
-            }
-            return retval;
-        }
+                        
 
     }
 }
