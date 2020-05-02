@@ -10,10 +10,14 @@ namespace NBsoft.Wordzz.Hubs
 
         public static void AddClient(WordzzClient client)
         {
+            if (client == null || client.ConnectionId == null || client.UserName == null)
+                return;
             clients.Add(client);
         }
         public static void RemoveClient(string connectionId)
         {
+            if (connectionId == null)
+                return;
             var cli = clients.FirstOrDefault(c => c.ConnectionId == connectionId);
             if (cli != null)
                 clients.Remove(cli);

@@ -51,13 +51,28 @@ namespace NBsoft.Wordzz.Services
             return opponents;
         }
 
-        public IGameQueue GetQueuedGame(string queueId) => gameQueue.FirstOrDefault(q => q.Id == queueId);        
+        public IGameQueue GetQueuedGame(string queueId) => gameQueue.FirstOrDefault(q => q.Id == queueId);
 
-        public async Task<string> ChallengeGame(string language, string player1, string player2, int size)
+        public IEnumerable<IGameChallenge> GetSentChallenges(string userName)
+        {
+            // Player 1 is the challenger Player 2 was the challenged player
+            // for it to be a challenge, player 2 must not be null
+            return gameQueue.Where(q => q.Player1 == userName && !string.IsNullOrEmpty(q.Player2))
+                .Select(q => new GameChallenge { Id = q.Id, Origin = q.Player1, Destination = q.Player2, Language = q.Language, Size = q.Size });
+        }
+        public IEnumerable<IGameChallenge> GetReceivedChallenges(string userName)
+        {
+            // Player 2 was the challenged player, player 1 is the challenger
+            return gameQueue.Where(q => q.Player2 == userName)
+                .Select(q => new GameChallenge { Id = q.Id, Origin = q.Player1, Destination = q.Player2, Language = q.Language, Size = q.Size });
+        }
+        
+
+        public async Task<IGameChallenge> ChallengeGame(string language, string player1, string player2, int size)
         {
             await lexiconService.LoadDictionary(language);            
-            var queue = QueueGame(language, player1, player2, size);
-            return queue.Id;
+            var q = QueueGame(language, player1, player2, size);
+            return new GameChallenge { Id = q.Id, Language = q.Language, Size = q.Size, Origin = q.Player1, Destination = q.Player2 };
         }
         public async Task<IGame> AcceptChallenge(string challengedPlayer, string queueId, bool accept)
         {

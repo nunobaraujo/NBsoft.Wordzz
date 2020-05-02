@@ -72,10 +72,33 @@ namespace NBsoft.Wordzz.Hubs
             var client = ClientHandler.Find(Context.ConnectionId);
             var games = gameService.GetActiveGames(client.UserName);
             return Task.FromResult(games);
-        }       
-        
+        }
+        public Task<IEnumerable<IGameChallenge>> GetReceivedChallenges()
+        {
+            var player = ClientHandler.Find(Context.ConnectionId);
+            if (player == null)
+            {
+                IEnumerable<IGameChallenge> empty = new List<IGameChallenge>();
+                return Task.FromResult(empty);
+            }   
 
-        public async Task<string> ChallengeGame(string language , string challengedPlayer, int size = 15)
+            var challenges = gameService.GetReceivedChallenges(player.UserName);
+            return Task.FromResult(challenges);
+        }
+        public Task<IEnumerable<IGameChallenge>> GetSentChallenges()
+        {
+            var player = ClientHandler.Find(Context.ConnectionId);
+            if (player == null)
+            {
+                IEnumerable<IGameChallenge> empty = new List<IGameChallenge>();
+                return Task.FromResult(empty);
+            }
+
+            var challenges = gameService.GetSentChallenges(player.UserName);
+            return Task.FromResult(challenges);
+        }
+
+        public async Task<IGameChallenge> ChallengeGame(string language , string challengedPlayer, int size = 15)
         {
             if (string.IsNullOrEmpty(language))
                 language = "en-us";
@@ -87,10 +110,9 @@ namespace NBsoft.Wordzz.Hubs
             {
                 return null;
             }
-            var challengeId = await gameService.ChallengeGame(language, challenger.UserName, opposer.UserName, size);            
-            await SendChallengePlayer(opposer.ConnectionId, challengeId, challenger.UserName, language, size);
-
-            return challengeId;
+            var challenge = await gameService.ChallengeGame(language, challenger.UserName, opposer.UserName, size);            
+            await SendChallengePlayer(opposer.ConnectionId, challenge);
+            return challenge;
         }
         public async Task<string> ChallengeAccept(string queueId, bool accept)
         {
@@ -100,7 +122,7 @@ namespace NBsoft.Wordzz.Hubs
             var challengedPlayer = ClientHandler.Find(Context.ConnectionId);
             var queue = gameService.GetQueuedGame(queueId);
             var game = await gameService.AcceptChallenge(challengedPlayer.UserName, queueId, accept);
-            if (queue == null || game == null){
+            if (queue == null){
                 return null;
             }
             var challengerConnection = ClientHandler.FindByUserName(queue.Player1);            
@@ -149,10 +171,10 @@ namespace NBsoft.Wordzz.Hubs
             if (!string.IsNullOrEmpty(connectionId))
                 await Clients.Client(connectionId).SendAsync("playOk", gameId, username);
         }
-        private async Task SendChallengePlayer(string connectionId, string id, string username, string language, int size )
+        private async Task SendChallengePlayer(string connectionId, IGameChallenge challenge)
         {
             if (!string.IsNullOrEmpty(connectionId))
-                await Clients.Client(connectionId).SendAsync("newChallenge", id, username, language, size);
+                await Clients.Client(connectionId).SendAsync("newChallenge", challenge);
         }
         private async Task SendChallengeAccepted(string connectionId, string challengeId, bool accept, string gameId)
         {

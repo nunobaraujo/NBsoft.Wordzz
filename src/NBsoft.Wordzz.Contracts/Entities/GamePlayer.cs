@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace NBsoft.Wordzz.Contracts.Entities
 {
+    [Serializable]
     public class GamePlayer : IGamePlayer
     {
         public string UserName { get; set; }

@@ -86,17 +86,15 @@ namespace NBsoft.Wordzz.Repositories
                 var session = await Get(token);
 
                 using var cnn = _createdDbConnection();
-                cnn.Open();
-                var transaction = cnn.BeginTransaction();
-                await cnn.ExecuteAsync(SqlCommands.DELETE, new { SessionToken = token }, transaction);
+                cnn.Open();                
+                await cnn.ExecuteAsync(SqlCommands.DELETE, new { SessionToken = token });
 
-                if (session != null)
-                {
-                    var editable = session.ToDto<Session>();
-                    editable.Expired = DateTime.UtcNow;
-                    var res = await cnn.ExecuteAsync(SqlCommands.INSERTHISTORY, editable, transaction);
-                }
-                transaction.Commit();
+                //if (session != null)
+                //{
+                //    var editable = session.ToDto<Session>();
+                //    editable.Expired = DateTime.UtcNow;
+                //    var res = await cnn.ExecuteAsync(SqlCommands.INSERTHISTORY, editable);
+                //}                
             }
             catch (Exception ex)
             {
