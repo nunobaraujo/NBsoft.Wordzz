@@ -59,7 +59,7 @@ CREATE TABLE `Lexicon` (
 
 CREATE TABLE `Word` (
     Id                  int UNSIGNED        AUTO_INCREMENT UNIQUE PRIMARY KEY,
-    Language			char(64)     	    NOT NULL,
+    Language			char(8)     	    NOT NULL,
     Name			    char(255)     	    NOT NULL,        
     Description			text     	        NULL,        
     INDEX word_index (Language),
@@ -69,8 +69,37 @@ CREATE TABLE `Word` (
 
 CREATE TABLE `UserContacts` (
     Id                  int UNSIGNED        AUTO_INCREMENT UNIQUE PRIMARY KEY,
-    UserName			char(128)     	NOT NULL,
-    Contact     		char(128)       NOT NULL,
+    UserName			char(128)     	    NOT NULL,
+    Contact     		char(128)           NOT NULL,
     INDEX usercontacts_index (username),
     FOREIGN KEY (username) 		REFERENCES User(UserName)	ON DELETE CASCADE 
+);
+
+CREATE TABLE `Board` (
+    Id                  int                 AUTO_INCREMENT UNIQUE PRIMARY KEY,
+    Name			    char(128)     	    NOT NULL,
+    Rows     		    int                 NOT NULL,
+    Columns     		int                 NOT NULL
+);
+CREATE TABLE `Tile` (
+    Id                  int                 AUTO_INCREMENT UNIQUE PRIMARY KEY,
+    BoardId             int     	        NOT NULL,
+    X			        int     	        NOT NULL,
+    Y     		        int                 NOT NULL,
+    Bonus     		    int                 NOT NULL,
+    FOREIGN KEY (BoardId) 		REFERENCES Board(Id)	ON DELETE RESTRICT 
+
+);
+
+CREATE TABLE `Game` (
+    Id		            char(36)     	    NOT NULL UNIQUE PRIMARY KEY,
+    BoardId             int     	        NOT NULL,
+    Language			char(8)     	    NOT NULL,
+    CreationDate		datetime            NOT NULL,
+    Status		        int                 NOT NULL,
+    CurrentPlayer       char(128)           NOT NULL,
+    CurrentStart	    datetime            NOT NULL,
+    CurrentPauseStart   datetime            NULL,
+    WEQJKWHEQJWEGQJEGQJ
+    FOREIGN KEY (BoardId) 		REFERENCES Board(Id)	ON DELETE RESTRICT 
 );

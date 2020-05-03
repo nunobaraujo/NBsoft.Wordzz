@@ -18,6 +18,12 @@ namespace NBsoft.Wordzz.Contracts.Entities
         public ILetterBag LetterBag { get; set; }
         public IEnumerable<IPlayMove> PlayMoves { get; set; }
         public IEnumerable<char> AvailableLetters { get; set; }
+        public string Winner { get; set; }
+        public FinishReason? FinishReason { get; set; }
+        public int ConsecutivePasses { get; set; }
+        public DateTime? FinishDate { get; set; }
+        public int P1FinalScore { get; set; }
+        public int P2FinalScore { get; set; }
 
         public IGamePlayer GetPlayer(string userName)
         {

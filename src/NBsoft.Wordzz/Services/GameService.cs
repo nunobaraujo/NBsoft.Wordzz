@@ -194,6 +194,7 @@ namespace NBsoft.Wordzz.Services
             ePlayer.Rack = eRack.Concat(newLetters);
             ePlayer.Score = moves.Where(m => m.Player == ePlayer.UserName).Sum(m => m.Score);
 
+            game.ConsecutivePasses = 0;
             // TODO: save game state to DB
 
             //logger.Info($"Game move letter:[{letters.GetString()}] Words:[{string.Join(",", move.Words.Select(w => w.GetString() + "=" + w.Score))}]",context: player.UserName);
@@ -245,15 +246,23 @@ namespace NBsoft.Wordzz.Services
             var moves = game.PlayMoves.ToList();
             moves.Add(move);
             game.PlayMoves = moves;
-                        
+            
+            await logger.InfoAsync($"PASS! = Duration:[{Math.Round((move.PlayFinish.Value - move.PlayStart).TotalMinutes, 2)}]", context: $"{gameId}:{username}");
 
+            string result = "OK";
+            game.ConsecutivePasses++;
+            if (game.ConsecutivePasses >= 4)
+            {
+                // GameOver
+                result = "GameOver";
+                FinishGame(game.Id, FinishReason.ConsecutivePass);
+            }
             // TODO: save game state to DB
 
-
-            await logger.InfoAsync($"PASS! = Duration:[{Math.Round((move.PlayFinish.Value-move.PlayStart).TotalMinutes,2)}]", context: $"{gameId}:{username}");
+            
             return new PlayResult
             {
-                MoveResult = "OK",
+                MoveResult = result,
                 PlayMove = move
             };
         }
@@ -377,12 +386,47 @@ namespace NBsoft.Wordzz.Services
             logger.Info($"Game Started = P1:{q.Player1} P2:{q.Player2} Language:{q.Language} Size:{q.Size}", context: game.Id);
             return game;
         }
-        private void FinishGame(string gameId)
+        private void FinishGame(string gameId, FinishReason reason, string forfeitPlayer = null)
         {
+
             // Todo end game logic
-            var game = activeGames.SingleOrDefault(x => x.Id == gameId);
-            if (game != null)
-                activeGames.Remove(game);
+            var game = activeGames.SingleOrDefault(x => x.Id == gameId)?.ToDto<Game>();
+            if (game == null)
+                throw new ArgumentException("Invalid game id");
+
+            game.Status = GameStatus.Finished;
+            game.FinishReason = reason;
+            game.FinishDate = DateTime.Now;
+
+            game.P1FinalScore = game.PlayMoves
+                    .Where(m => m.Player == game.Player01.UserName)
+                    .Sum(m => m.Score) - game.Player01.Rack.Sum(l => l.Char.LetterValue(game.Language));
+
+            game.P2FinalScore = game.PlayMoves
+                .Where(m => m.Player == game.Player02.UserName)
+                .Sum(m => m.Score) - game.Player02.Rack.Sum(l => l.Char.LetterValue(game.Language));
+            
+            if (reason == FinishReason.Forfeit)
+            {   
+                var looser = game.GetPlayer(forfeitPlayer);
+                if (game == null)
+                    throw new ApplicationException("Forfeit must have a forfeit player");
+                game.Winner = game.Player01.UserName == looser.UserName
+                    ? game.Player02.UserName
+                    : game.Player01.UserName;
+            }
+            else
+            {   
+                if (game.P1FinalScore > game.P2FinalScore)
+                    game.Winner = game.Player01.UserName;
+                else if (game.P2FinalScore > game.P1FinalScore)
+                    game.Winner = game.Player02.UserName;
+                else
+                    game.Winner = null;
+            }
+            // todo save game to db
+
+            activeGames.Remove(game);
         }
 
         private IBoard GenerateBoard(int size)
