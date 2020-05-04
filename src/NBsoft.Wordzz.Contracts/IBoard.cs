@@ -2,9 +2,10 @@
 {
     public interface IBoard
     {
+        int Id { get; }
         string Name { get; }
-        int Rows { get; }
-        int Columns { get; }
+        int BoardRows { get; }
+        int BoardColumns { get; }
         IBoardTile[] Tiles { get; }        
     }
 }

@@ -78,17 +78,16 @@ CREATE TABLE `UserContacts` (
 CREATE TABLE `Board` (
     Id                  int                 AUTO_INCREMENT UNIQUE PRIMARY KEY,
     Name			    char(128)     	    NOT NULL,
-    Rows     		    int                 NOT NULL,
-    Columns     		int                 NOT NULL
+    BoardRows     		int                 NOT NULL,
+    BoardColumns        int                 NOT NULL
 );
-CREATE TABLE `Tile` (
+CREATE TABLE `BoardTile` (
     Id                  int                 AUTO_INCREMENT UNIQUE PRIMARY KEY,
     BoardId             int     	        NOT NULL,
     X			        int     	        NOT NULL,
     Y     		        int                 NOT NULL,
     Bonus     		    int                 NOT NULL,
     FOREIGN KEY (BoardId) 		REFERENCES Board(Id)	ON DELETE RESTRICT 
-
 );
 
 CREATE TABLE `Game` (
@@ -96,10 +95,57 @@ CREATE TABLE `Game` (
     BoardId             int     	        NOT NULL,
     Language			char(8)     	    NOT NULL,
     CreationDate		datetime            NOT NULL,
+    Player01            char(128)     	    NOT NULL,
+    Player01Rack        char(32)     	    NOT NULL,
+    Player02            char(128)     	    NOT NULL,
+    Player02Rack        char(32)     	    NOT NULL,
     Status		        int                 NOT NULL,
     CurrentPlayer       char(128)           NOT NULL,
     CurrentStart	    datetime            NOT NULL,
     CurrentPauseStart   datetime            NULL,
-    WEQJKWHEQJWEGQJEGQJ
-    FOREIGN KEY (BoardId) 		REFERENCES Board(Id)	ON DELETE RESTRICT 
+    LetterBag           char(128)           NOT NULL,
+    Winner              char(128)     	    NOT NULL,
+    FinishReason        int                 NULL,
+    ConsecutivePasses   int                 NOT NULL,
+    FinishDate          datetime            NULL,
+    P1FinalScore        int                 NOT NULL,
+    P2FinalScore        int                 NOT NULL,
+    FOREIGN KEY (BoardId) 		REFERENCES Board(Id)	ON DELETE RESTRICT,
+    FOREIGN KEY (Player01) 		REFERENCES User(UserName)	ON DELETE RESTRICT,
+    FOREIGN KEY (Player02) 		REFERENCES User(UserName)	ON DELETE RESTRICT 
+);
+CREATE TABLE `GameMove` (
+    Id                  int UNSIGNED        AUTO_INCREMENT UNIQUE PRIMARY KEY,
+    GameId              char(36)  	        NOT NULL,
+    PlayerId    		char(128)     	    NOT NULL,
+    PlayStart           datetime            NOT NULL,
+    PlayFinish          datetime            NULL,
+    Score		        int                 NOT NULL,
+    Letters             text              	NULL,
+    Words               text              	NULL,
+    INDEX move_player_index (PlayerId),
+    FOREIGN KEY (GameId) 		REFERENCES Game(Id)	ON DELETE RESTRICT,
+    FOREIGN KEY (PlayerId) 		REFERENCES User(UserName)	ON DELETE RESTRICT 
+);
+CREATE TABLE `UserStats` (
+    UserName			    char(128)     	    NOT NULL UNIQUE PRIMARY KEY,
+    GamesPlayed    		    int UNSIGNED        NOT NULL,
+    Victories    		    int UNSIGNED        NOT NULL,
+    Defeats    		        int UNSIGNED        NOT NULL,
+    Draws    		        int UNSIGNED        NOT NULL,
+    TotalScore    		    int UNSIGNED        NOT NULL,
+    HighScoreGame  		    int UNSIGNED        NOT NULL,
+    HighScoreGameOpponent   char(128)     	    NOT NULL,
+    HighScorePlay  		    int UNSIGNED        NOT NULL,
+    HighScorePlayOpponent   char(128)     	    NOT NULL,
+    HighScoreWord  		    int UNSIGNED        NOT NULL,
+    HighScoreWordOpponent   char(128)     	    NOT NULL,
+    LowScoreGame  		    int UNSIGNED        NOT NULL,
+    LowScoreGameOpponent    char(128)     	    NOT NULL,
+    LowScorePlay  		    int UNSIGNED        NOT NULL,
+    LowScorePlayOpponent    char(128)     	    NOT NULL,
+    LowScoreWord  		    int UNSIGNED        NOT NULL,
+    LowScoreWordOpponent    char(128)     	    NOT NULL,
+    MostUsedWord            char(128)           NOT NULL,
+    MostFrequentOpponent    char(128)           NOT NULL
 );
