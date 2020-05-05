@@ -20,5 +20,6 @@
         public string LogConnString { get; set; }
         public string MainConnString { get; set; }
         public string SessionConnString { get; set; }
+        public string StatsConnString { get; set; }
     }
 }

@@ -12,7 +12,7 @@ namespace NBsoft.Wordzz.Core.Services
         IGameQueue GetQueuedGame(string queueId);
         Task<IEnumerable<string>> GetContacts(string userId);
 
-        Task<IGameChallenge> ChallengeGame(string language, string player1UserName, string player2UserName, int size);
+        IGameChallenge ChallengeGame(string language, string player1UserName, string player2UserName, int size);
         Task<IGame> AcceptChallenge(string challengedPlayer, string queueId, bool accept);
         IEnumerable<IGame> GetActiveGames(string userName);
         IEnumerable<string> GetActiveGameOpponents(string userName);
@@ -21,6 +21,7 @@ namespace NBsoft.Wordzz.Core.Services
 
         Task<PlayResult> Play(string gameId, string username, PlayLetter[] letters);
         Task<PlayResult> Pass(string gameId, string username);
+        Task<PlayResult> Forfeit(string gameId, string username);
 
     }
 }

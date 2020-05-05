@@ -58,7 +58,7 @@ namespace NBsoft.Wordzz.Extensions
         /// <returns></returns>
         public static string CheckTilePositions(this IBoard board, IEnumerable<IPlayLetter> existingLetters, IEnumerable<IPlayLetter> playedLetters)
         {
-            var outOfBounds = playedLetters.Where(l => l.Tile.X < 1 || l.Tile.X > board.Columns || l.Tile.Y < 1 || l.Tile.Y > board.Rows);
+            var outOfBounds = playedLetters.Where(l => l.Tile.X < 1 || l.Tile.X > board.BoardColumns || l.Tile.Y < 1 || l.Tile.Y > board.BoardRows);
             if (outOfBounds.Count() > 0)
                 return $"Letter(s) out of bounds: {string.Join(",", outOfBounds.Select(t => t.Letter.Letter.Char))}";
 
@@ -81,7 +81,7 @@ namespace NBsoft.Wordzz.Extensions
         public static string CheckWordStructure(this IBoard board, IEnumerable<IPlayLetter> existingLetters, IEnumerable<IPlayLetter>  playedLetters)
         {
             // Validate out of bounds
-            var outOfBounds = playedLetters.Where(l => l.Tile.X < 1 || l.Tile.X > board.Columns || l.Tile.Y < 1 || l.Tile.Y > board.Rows);
+            var outOfBounds = playedLetters.Where(l => l.Tile.X < 1 || l.Tile.X > board.BoardColumns || l.Tile.Y < 1 || l.Tile.Y > board.BoardRows);
             if (outOfBounds.Count() > 0)
             {
                 var first = outOfBounds.First();
@@ -148,7 +148,7 @@ namespace NBsoft.Wordzz.Extensions
         public static string CheckWordPosition(this IBoard board, IEnumerable<IPlayLetter> existingLetters, IEnumerable<IPlayLetter> playedLetters)
         {
             // Validate out of bounds
-            var outOfBounds = playedLetters.Where(l => l.Tile.X < 1 || l.Tile.X > board.Columns || l.Tile.Y < 1 || l.Tile.Y > board.Rows);
+            var outOfBounds = playedLetters.Where(l => l.Tile.X < 1 || l.Tile.X > board.BoardColumns || l.Tile.Y < 1 || l.Tile.Y > board.BoardRows);
             if (outOfBounds.Count() > 0)
             {
                 var first = outOfBounds.First();
@@ -175,7 +175,7 @@ namespace NBsoft.Wordzz.Extensions
 
                 foreach (var tile in connectedTiles)
                 {
-                    if (tile.x >= 1 && tile.x <= board.Columns && tile.y >= 1 && tile.y <= board.Rows)
+                    if (tile.x >= 1 && tile.x <= board.BoardColumns && tile.y >= 1 && tile.y <= board.BoardRows)
                     {
                         var existing = existingLetters.FirstOrDefault(l => l.Tile.X == tile.x && l.Tile.Y == tile.y);
                         if (existing != null)
@@ -267,7 +267,7 @@ namespace NBsoft.Wordzz.Extensions
             {
                 var scored = new PlayWord
                 {
-                    Letters = word.Letters,
+                    Letters = word.Letters.Select(l => l.ToDto<PlayLetter>()),
                     RawScore = word.Letters.CalculateRawScore(game.Language),
                     Score = word.Letters.CalculateEffectiveScore(game.Language, playLetters)
                 };                
@@ -293,7 +293,7 @@ namespace NBsoft.Wordzz.Extensions
                 }
 
             }
-            while (endX <= board.Columns)
+            while (endX <= board.BoardColumns)
             {
                 endX++;
                 var previousLetter = allLetters.SingleOrDefault(l => l.Tile.Y == posY && l.Tile.X == endX);
@@ -316,7 +316,7 @@ namespace NBsoft.Wordzz.Extensions
 
             // TODO check 1 letter words
             return new PlayWord {
-                Letters = word.ToArray(),
+                Letters = word.Select(l => l.ToDto<PlayLetter>()).ToArray(),
                 Score = 0,
                 RawScore = 0,
             };
@@ -338,7 +338,7 @@ namespace NBsoft.Wordzz.Extensions
                 }
 
             }
-            while (endY <= board.Rows)
+            while (endY <= board.BoardRows)
             {
                 endY++;
                 var previousLetter = allLetters.SingleOrDefault(l => l.Tile.Y == endY && l.Tile.X == posX);
@@ -362,7 +362,7 @@ namespace NBsoft.Wordzz.Extensions
             // TODO check 1 letter words
             return new PlayWord
             {
-                Letters = word.ToArray(),
+                Letters = word.Select(l => l.ToDto<PlayLetter>()).ToArray(),
                 Score = 0,
                 RawScore = 0,
             };

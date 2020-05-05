@@ -12,7 +12,8 @@ namespace NBsoft.Wordzz.Core.Repositories
         Task<IEnumerable<GameDataModel>> GetActive();
         Task<IEnumerable<GameDataModel>> GeByUser(string userName);
 
-        Task<GameMoveDataModel> AddMove(GameMoveDataModel move);
-        Task<IEnumerable<GameMoveDataModel>> GetMovesByPlayer();
+        Task<int> AddMoves(string gameId, IEnumerable<GameMoveDataModel> moves);
+        Task<IEnumerable<GameMoveDataModel>> GetMoves(string gameId);
+        Task<IEnumerable<GameMoveDataModel>> GetMovesByPlayer(string userId);
     }
 }

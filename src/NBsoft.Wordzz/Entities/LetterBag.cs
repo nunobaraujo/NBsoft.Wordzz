@@ -17,11 +17,14 @@ namespace NBsoft.Wordzz.Entities
         public IEnumerable<ILetter> Bag => bag;
         public string Language { get; }
 
-        public LetterBag(string language)
+        public LetterBag(string language, IEnumerable<ILetter> initialBag = null)
         {
             Language = language;
             culture = new CultureInfo(language);
-            bag = GenereateLetterBag(culture);
+            if (initialBag == null)
+                this.bag = GenereateLetterBag(culture);
+            else
+                this.bag = initialBag.ToList();
         }
 
         
@@ -72,9 +75,7 @@ namespace NBsoft.Wordzz.Entities
                 }); ;
             }
             return result;
-        }
-
-        
+        }                
         
     }
 }

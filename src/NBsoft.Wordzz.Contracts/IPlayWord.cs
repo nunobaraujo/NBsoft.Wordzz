@@ -1,8 +1,10 @@
-﻿namespace NBsoft.Wordzz.Contracts
+﻿using System.Collections.Generic;
+
+namespace NBsoft.Wordzz.Contracts
 {
     public interface IPlayWord
     {        
-        IPlayLetter[] Letters { get; }
+        IEnumerable<IPlayLetter> Letters { get; }
         int Score { get; }
         int RawScore { get; }
         string Description { get; }

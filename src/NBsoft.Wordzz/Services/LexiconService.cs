@@ -169,5 +169,10 @@ namespace NBsoft.Wordzz.Services
             }
             return string.Join(";", shortdescriptions);
         }
+
+        public async Task<IEnumerable<ILexicon>> AvailableLexicons()
+        {
+            return await wordRepository.ListDictionaries();
+        }
     }
 }

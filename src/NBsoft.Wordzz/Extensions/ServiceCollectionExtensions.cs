@@ -18,7 +18,10 @@ namespace NBsoft.Wordzz.Extensions
                 .AddSingleton<RepositoryFactory>()
                 .AddTransient(x => x.GetRequiredService<RepositoryFactory>().CreateUserRepository())
                 .AddTransient(x => x.GetRequiredService<RepositoryFactory>().CreateSessionRepository())
-                .AddTransient(x => x.GetRequiredService<RepositoryFactory>().CreateWordRepository());
+                .AddTransient(x => x.GetRequiredService<RepositoryFactory>().CreateGameRepository())
+                .AddTransient(x => x.GetRequiredService<RepositoryFactory>().CreateWordRepository())
+                .AddTransient(x => x.GetRequiredService<RepositoryFactory>().CreateBoardRepository())
+                .AddTransient(x => x.GetRequiredService<RepositoryFactory>().CreateStatsRepository());
         }
         internal static IServiceCollection RegisterServices(this IServiceCollection src)
         {

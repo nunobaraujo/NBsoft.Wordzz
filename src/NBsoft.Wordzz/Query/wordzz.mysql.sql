@@ -91,7 +91,7 @@ CREATE TABLE `BoardTile` (
 );
 
 CREATE TABLE `Game` (
-    Id		            char(36)     	    NOT NULL UNIQUE PRIMARY KEY,
+    Id		            char(32)     	    NOT NULL UNIQUE PRIMARY KEY,
     BoardId             int     	        NOT NULL,
     Language			char(8)     	    NOT NULL,
     CreationDate		datetime            NOT NULL,
@@ -103,8 +103,8 @@ CREATE TABLE `Game` (
     CurrentPlayer       char(128)           NOT NULL,
     CurrentStart	    datetime            NOT NULL,
     CurrentPauseStart   datetime            NULL,
-    LetterBag           char(128)           NOT NULL,
-    Winner              char(128)     	    NOT NULL,
+    LetterBag           text                NOT NULL,
+    Winner              char(128)     	    NULL,
     FinishReason        int                 NULL,
     ConsecutivePasses   int                 NOT NULL,
     FinishDate          datetime            NULL,
@@ -116,7 +116,7 @@ CREATE TABLE `Game` (
 );
 CREATE TABLE `GameMove` (
     Id                  int UNSIGNED        AUTO_INCREMENT UNIQUE PRIMARY KEY,
-    GameId              char(36)  	        NOT NULL,
+    GameId              char(32)  	        NOT NULL,
     PlayerId    		char(128)     	    NOT NULL,
     PlayStart           datetime            NOT NULL,
     PlayFinish          datetime            NULL,
@@ -127,6 +127,7 @@ CREATE TABLE `GameMove` (
     FOREIGN KEY (GameId) 		REFERENCES Game(Id)	ON DELETE RESTRICT,
     FOREIGN KEY (PlayerId) 		REFERENCES User(UserName)	ON DELETE RESTRICT 
 );
+
 CREATE TABLE `UserStats` (
     UserName			    char(128)     	    NOT NULL UNIQUE PRIMARY KEY,
     GamesPlayed    		    int UNSIGNED        NOT NULL,

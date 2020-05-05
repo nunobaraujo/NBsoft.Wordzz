@@ -17,12 +17,10 @@ namespace NBsoft.Wordzz.Hubs
         public const string Address = "/hubs/game";
 
         private readonly IGameService gameService;
-        private readonly ILexiconService lexiconService;
 
-        public GameHub(IGameService gameService, ILexiconService lexiconService)
+        public GameHub(IGameService gameService)
         {
             this.gameService = gameService;
-            this.lexiconService = lexiconService;
         }
                 
         public async override Task OnConnectedAsync()
@@ -68,7 +66,7 @@ namespace NBsoft.Wordzz.Hubs
             return Task.FromResult(onlineContacts);
         }
         public Task<IEnumerable<IGame>> GetActiveGames()
-        {
+        {   
             var client = ClientHandler.Find(Context.ConnectionId);
             var games = gameService.GetActiveGames(client.UserName);
             return Task.FromResult(games);
@@ -110,8 +108,8 @@ namespace NBsoft.Wordzz.Hubs
             {
                 return null;
             }
-            var challenge = await gameService.ChallengeGame(language, challenger.UserName, opposer.UserName, size);            
-            await SendChallengePlayer(opposer.ConnectionId, challenge);
+            var challenge = gameService.ChallengeGame(language, challenger.UserName, opposer.UserName, size);            
+            await SendChallengePlayer(opposer?.ConnectionId, challenge);
             return challenge;
         }
         public async Task<string> ChallengeAccept(string queueId, bool accept)
@@ -126,41 +124,59 @@ namespace NBsoft.Wordzz.Hubs
                 return null;
             }
             var challengerConnection = ClientHandler.FindByUserName(queue.Player1);            
-            await SendChallengeAccepted(challengerConnection.ConnectionId, queue.Id, accept, game?.Id);
+            await SendChallengeAccepted(challengerConnection?.ConnectionId, queue.Id, accept, game?.Id);
             return game?.Id;
         }
 
         public async Task<PlayResult> Play(PlayRequest playRequest) 
-        {   
+        {
+            var game = gameService.GetActiveGames(playRequest.UserName).Single(g => g.Id == playRequest.GameId);
+            var opponent = playRequest.UserName == game.Player01.UserName
+                ? game.Player02.UserName
+                : game.Player01.UserName;
+            var opponentConnection = ClientHandler.FindByUserName(opponent);
+
             var result = await gameService.Play(playRequest.GameId, playRequest.UserName, playRequest.Letters);
             if (result.MoveResult == "OK")
             {
-                var game = gameService.GetActiveGames(playRequest.UserName).Single(g => g.Id == playRequest.GameId);
-                var opponent = playRequest.UserName == game.Player01.UserName 
-                    ? game.Player02.UserName 
-                    : game.Player01.UserName;
-
-                var opponentConnection = ClientHandler.FindByUserName(opponent);
-                await SendPlayOk(opponentConnection.ConnectionId, playRequest.GameId, playRequest.UserName);
+                
+                await SendPlayOk(opponentConnection?.ConnectionId, playRequest.GameId, playRequest.UserName);
             }
             return result;
         }
         public async Task<PlayResult> Pass(PlayRequest playRequest)
         {
-            var result = await gameService.Pass(playRequest.GameId, playRequest.UserName);
-            if (result.MoveResult == "OK")
-            {
-                var game = gameService.GetActiveGames(playRequest.UserName).Single(g => g.Id == playRequest.GameId);
-                var opponent = playRequest.UserName == game.Player01.UserName
-                    ? game.Player02.UserName
-                    : game.Player01.UserName;
+            var game = gameService.GetActiveGames(playRequest.UserName).Single(g => g.Id == playRequest.GameId);
+            var opponent = playRequest.UserName == game.Player01.UserName
+                ? game.Player02.UserName
+                : game.Player01.UserName;
+            var opponentConnection = ClientHandler.FindByUserName(opponent);
 
-                var opponentConnection = ClientHandler.FindByUserName(opponent);
-                await SendPlayOk(opponentConnection.ConnectionId, playRequest.GameId, playRequest.UserName);
+            var result = await gameService.Pass(playRequest.GameId, playRequest.UserName);
+            if (result.MoveResult == "OK" || result.MoveResult == "GameOver")
+            {                
+                if (result.MoveResult == "OK")
+                    await SendPlayOk(opponentConnection?.ConnectionId, playRequest.GameId, playRequest.UserName);
+                else
+                    await SendGameOver(opponentConnection?.ConnectionId, playRequest.GameId, result.GameOverResult);
             }
             return result;
         }
+        public async Task<PlayResult> Forfeit(PlayRequest playRequest)
+        {
+            var game = gameService.GetActiveGames(playRequest.UserName).Single(g => g.Id == playRequest.GameId);
+            var opponent = playRequest.UserName == game.Player01.UserName
+                ? game.Player02.UserName
+                : game.Player01.UserName;
+            var opponentConnection = ClientHandler.FindByUserName(opponent);
 
+            var result = await gameService.Forfeit(playRequest.GameId, playRequest.UserName);
+            if (result.MoveResult == "GameOver")
+            {   
+                await SendGameOver(opponentConnection?.ConnectionId, playRequest.GameId, result.GameOverResult);
+            }
+            return result;
+        }
 
         public async Task SendToAll(string name, string message)
         {
@@ -180,6 +196,11 @@ namespace NBsoft.Wordzz.Hubs
         {
             if (!string.IsNullOrEmpty(connectionId))
                 await Clients.Client(connectionId).SendAsync("challengeAccepted", challengeId, accept, gameId);
+        }      
+        private async Task SendGameOver(string connectionId, string gameId, GameResult result)
+        {
+            if (!string.IsNullOrEmpty(connectionId))
+                await Clients.Client(connectionId).SendAsync("gameOver", gameId, result);
         }
     }
 }

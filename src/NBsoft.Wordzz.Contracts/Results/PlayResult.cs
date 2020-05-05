@@ -8,5 +8,6 @@ namespace NBsoft.Wordzz.Contracts.Results
     {
         public string MoveResult { get; set; }
         public PlayMove PlayMove { get; set; }
+        public GameResult GameOverResult { get; set; }
     }
 }

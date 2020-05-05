@@ -17,8 +17,7 @@ using System.Threading.Tasks;
 namespace NBsoft.Wordzz.Repositories
 {
     class UserRepository : IUserRepository
-    {
-       
+    {       
         private readonly ILogger _log;
         private readonly Func<IDbConnection> _createdDbConnection;
         private readonly Func<Type, string> _getSqlUpdateFields;

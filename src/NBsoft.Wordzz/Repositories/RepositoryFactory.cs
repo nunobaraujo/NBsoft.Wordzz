@@ -50,7 +50,16 @@ namespace NBsoft.Wordzz.Repositories
             };
             return new UserRepository(_logger, conn, GetUpdateFields, GetInsertFields, _settings.EncryptionKey);
         }
-
+        public IGameRepository CreateGameRepository()
+        {
+            Func<IDbConnection> conn = _repositoryType switch
+            {
+                RepositoryType.MsSqlServer => () => new SqlConnection(_settings.Db.StatsConnString),
+                RepositoryType.MySql => () => new MySqlConnection(_settings.Db.StatsConnString),
+                _ => throw new ArgumentOutOfRangeException(nameof(_repositoryType)),
+            };
+            return new GameRepository(_logger, conn, GetUpdateFields, GetInsertFields);
+        }
         public IWordRepository CreateWordRepository()
         {
             Func<string> getLastId;
@@ -71,6 +80,38 @@ namespace NBsoft.Wordzz.Repositories
             }
             return new WordRepository(_logger, conn, GetUpdateFields, GetInsertFields, getLastId);
         }
+
+        public IStatsRepository CreateStatsRepository()
+        {
+            Func<IDbConnection> conn = _repositoryType switch
+            {
+                RepositoryType.MsSqlServer => () => new SqlConnection(_settings.Db.StatsConnString),
+                RepositoryType.MySql => () => new MySqlConnection(_settings.Db.StatsConnString),
+                _ => throw new ArgumentOutOfRangeException(nameof(_repositoryType)),
+            };
+            return new StatsRepository(_logger, conn, GetUpdateFields, GetInsertFields);
+        }
+        public IBoardRepository CreateBoardRepository()
+        {
+            Func<string> getLastId;
+            Func<IDbConnection> conn;
+
+            switch (_repositoryType)
+            {
+                case RepositoryType.MsSqlServer:
+                    conn = () => new SqlConnection(_settings.Db.MainConnString);
+                    getLastId = GetSqlLastInsertedId;
+                    break;
+                case RepositoryType.MySql:
+                    conn = () => new MySqlConnection(_settings.Db.MainConnString);
+                    getLastId = GetMySqlLastInsertedId;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(_repositoryType));
+            }
+            return new BoardRepository(_logger, conn, getLastId);
+        }
+
 
         private static string GetUpdateFields(Type t) => 
             string.Join(",", t.GetProperties().Select(x => x.Name + "=@" + x.Name));

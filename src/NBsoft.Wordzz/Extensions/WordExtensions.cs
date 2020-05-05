@@ -16,16 +16,36 @@ namespace NBsoft.Wordzz.Extensions
                 return null;
             return src.Letters.GetString();
         }
-        public static string GetString(this IPlayLetter[] src)
+        public static string GetString(this IEnumerable<IPlayLetter> src)
         {
-            var chars = src.Select(l => l.Letter.Letter.Char);
+            var letters = src.Select(l => l.Letter.Letter);
+            return letters.GetString();
+        }
+        public static string GetString(this IEnumerable<ILetter> src)
+        {
+            var chars = src.Select(l => l.Char);
             var sb = new StringBuilder(chars.Count());
             foreach (var c in chars)
             {
                 sb.Append(c);
             }
-
             return sb.ToString();
+        }
+
+        public static IEnumerable<ILetter> GetLetters(this string src, string language)
+        {
+            var result = new List<ILetter>();
+            foreach (var c in src)
+            {
+                var letter = new Letter
+                {
+                    Char = c,
+                    IsBlank = c == ' ',
+                    Value = c.LetterValue(language)
+                };
+                result.Add(letter);
+            }
+            return result;
         }
 
 

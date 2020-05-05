@@ -14,7 +14,7 @@ namespace NBsoft.Wordzz.Extensions
         {
             var board = src.ToDto<Board>();
 
-            if (board.Rows == 15)
+            if (board.BoardRows == 15)
             {
                 // Center
                 board.Tile(8, 8).Bonus = BonusType.Center;
