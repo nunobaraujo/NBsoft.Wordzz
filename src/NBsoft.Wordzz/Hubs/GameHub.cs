@@ -3,6 +3,7 @@ using NBsoft.Wordzz.Contracts;
 using NBsoft.Wordzz.Contracts.Entities;
 using NBsoft.Wordzz.Contracts.Requests;
 using NBsoft.Wordzz.Contracts.Results;
+using NBsoft.Wordzz.Core.Models;
 using NBsoft.Wordzz.Core.Services;
 using NBsoft.Wordzz.Extensions;
 using System;
@@ -96,6 +97,15 @@ namespace NBsoft.Wordzz.Hubs
             return Task.FromResult(challenges);
         }
 
+        public Task<IGameQueue> SearchGame(string language ="en-us", string boardName = "Standard")
+        {
+            var user = ClientHandler.Find(Context.ConnectionId);
+            if (user == null || user.UserName == null)
+                return null;
+
+            var result = gameService.SearchGame(user.UserName, language, boardName);
+            return Task.FromResult(result);
+        }
         public async Task<IGameChallenge> ChallengeGame(string language , string challengedPlayer, int size = 15)
         {
             if (string.IsNullOrEmpty(language))

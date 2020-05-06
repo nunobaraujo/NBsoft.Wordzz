@@ -11,6 +11,7 @@ using NBsoft.Wordzz.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Services
@@ -26,7 +27,6 @@ namespace NBsoft.Wordzz.Services
 
 
         private readonly List<IGame> activeGames;
-        private readonly List<IGameQueue> gameQueue;
         private readonly ILogger logger;
                 
 
@@ -60,8 +60,6 @@ namespace NBsoft.Wordzz.Services
             return opponents;
         }
 
-        public IGameQueue GetQueuedGame(string queueId) => gameQueue.FirstOrDefault(q => q.Id == queueId);
-
         public IEnumerable<IGameChallenge> GetSentChallenges(string userName)
         {
             // Player 1 is the challenger Player 2 was the challenged player
@@ -75,8 +73,17 @@ namespace NBsoft.Wordzz.Services
             return gameQueue.Where(q => q.Player2 == userName)
                 .Select(q => new GameChallenge { Id = q.Id, Origin = q.Player1, Destination = q.Player2, Language = q.Language, Size = q.Size });
         }
-        
 
+
+        public async Task<IGameQueue> SearchGame(string userName, string language, string boardName)
+        {
+            var boards = await boardRepository.List();
+            var board = boards.FirstOrDefault(b => b.Name == boardName);
+            if (board == null)
+                return null;
+
+            return QueueGame(language, userName, null, board.Id);
+        }
         public IGameChallenge ChallengeGame(string language, string player1, string player2, int size)
         {            
             var q = QueueGame(language, player1, player2, size);
@@ -350,40 +357,6 @@ namespace NBsoft.Wordzz.Services
             await logger.InfoAsync("GameService Initialized!");
         }
 
-        private IGameQueue QueueGame(string language, string player1UserName, string player2UserName, int size)
-        {
-            /* 
-             * Does the queue has player2 ? 
-             * If it does game hub will send a game request to player2
-             * If player 2 accepts the challenge gamehub will receive an OK with the Queue ID and the that will start
-             * Otherwise the queue will removed and the game will be canceled
-             * 
-             * If the queue doesn't have a player2 search the queue for an awaiting game with the same characteristics
-             * if a match is found then start the game
-             * if not this stays in queue until a new match is found
-            */
-
-            var newQueue = new GameQueue
-            {
-                Id = Guid.NewGuid().ToString(),
-                Language = language,
-                Player1 = player1UserName,
-                Player2 = player2UserName,
-                Size = size,
-                QueueDate = DateTime.UtcNow
-            };
-            gameQueue.Add(newQueue);
-            logger.Info($"Nem game in queue. P1:{player1UserName} P2:{player2UserName} Language:{language} Size:{size}");
-            return newQueue;
-        }
-        private void RemoveQueue(string queueId)
-        {
-            var q = GetQueuedGame(queueId);
-            if (q != null)
-                gameQueue.Remove(q);
-        }
-
-        
         private async Task<IGame> NewSoloGame(string language, string player1UserName, int aiLevel, int size)
         {
             var user1 = await userRepository.Get(player1UserName);
@@ -647,5 +620,6 @@ namespace NBsoft.Wordzz.Services
             lexiconLetters.Remove(emptySpace);
             return lexiconLetters;
         }
+
     }
 }

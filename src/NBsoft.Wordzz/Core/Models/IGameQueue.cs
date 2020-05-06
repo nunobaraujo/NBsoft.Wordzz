@@ -9,6 +9,6 @@ namespace NBsoft.Wordzz.Core.Models
         string Language { get; }
         string Player1 { get; }
         string Player2 { get; }
-        int Size { get; }
+        int BoardId { get; }
     }
 }

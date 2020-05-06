@@ -10,6 +10,6 @@ namespace NBsoft.Wordzz.Entities
         public string Language { get; set; }
         public string Player1 { get; set; }
         public string Player2 { get; set; }
-        public int Size { get; set; }
+        public int BoardId { get; set; }
     }
 }

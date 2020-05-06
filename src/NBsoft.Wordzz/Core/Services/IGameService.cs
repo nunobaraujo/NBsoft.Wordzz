@@ -8,7 +8,9 @@ using System.Threading.Tasks;
 namespace NBsoft.Wordzz.Core.Services
 {
     public interface IGameService
-    {        
+    {
+        Task<IGameQueue> SearchGame(string userName, string language, string boardName);
+
         IGameQueue GetQueuedGame(string queueId);
         Task<IEnumerable<string>> GetContacts(string userId);
 
@@ -22,6 +24,6 @@ namespace NBsoft.Wordzz.Core.Services
         Task<PlayResult> Play(string gameId, string username, PlayLetter[] letters);
         Task<PlayResult> Pass(string gameId, string username);
         Task<PlayResult> Forfeit(string gameId, string username);
-
+        
     }
 }
