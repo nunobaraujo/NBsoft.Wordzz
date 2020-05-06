@@ -24,8 +24,7 @@ namespace NBsoft.Wordzz.Controllers
             _userRepository = userRepository;
         }
 
-        [HttpPost]
-        [Route("LogIn/")]
+        [HttpPost]        
         [ProducesResponseType(typeof(LogInResult), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> LogIn([FromBody]LogInRequest request)
         {
@@ -44,8 +43,7 @@ namespace NBsoft.Wordzz.Controllers
             return Ok(result);            
         }
         [Authorize]
-        [HttpDelete]
-        [Route("LogIn/")]
+        [HttpDelete]        
         public async Task<IActionResult> LogOut()
         {
             string accessToken = await HttpContext.GetToken();

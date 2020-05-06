@@ -1,5 +1,6 @@
 ﻿using NBsoft.Wordzz.Contracts;
 using NBsoft.Wordzz.Contracts.Entities;
+using NBsoft.Wordzz.Core.Models;
 using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Entities;
 using System.Threading.Tasks;
@@ -21,6 +22,15 @@ namespace NBsoft.Wordzz.Extensions
             return res;
         }
 
+        public static IUser Sanitize(this IUser src)
+        {
+            if (src == null)
+                return null;
+            var user = src.ToDto<User>();
+            user.PasswordHash = null;
+            user.Salt = null;
+            return user;
+        }
 
         public static GameDataModel ToDataModel(this IGame src)
         {

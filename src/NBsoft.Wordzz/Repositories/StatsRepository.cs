@@ -6,6 +6,7 @@ using NBsoft.Wordzz.Contracts.Entities;
 using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Extensions;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
@@ -101,10 +102,29 @@ namespace NBsoft.Wordzz.Repositories
                     throw new ArgumentNullException(nameof(userName));
 
                 using var cnn = _createdDbConnection();
-                var query = @"SELECT * FROM UserStats WHERE UserName = @UserName AND Deleted = 0";
+                var query = @"SELECT * FROM UserStats WHERE UserName = @UserName";
                 return (await cnn.QueryAsync<UserStats>(
                     query, new { UserName = userName }))
                     .FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                await _log?.ErrorAsync("Error getting user stats", ex);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<IUserStats>> GetHighScores()
+        {
+            try
+            {
+                using var cnn = _createdDbConnection();
+                var query = @"SELECT * FROM UserStats ORDER BY HighScoreGame DESC";
+                var res = await cnn.QueryAsync<UserStats>(query);
+                if (res.Count() > 10)
+                    return res.Take(10);
+                else
+                    return res;
             }
             catch (Exception ex)
             {

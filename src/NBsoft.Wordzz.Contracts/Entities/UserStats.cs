@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace NBsoft.Wordzz.Contracts.Entities
+﻿namespace NBsoft.Wordzz.Contracts.Entities
 {
     public class UserStats : IUserStats
     {
@@ -17,13 +13,8 @@ namespace NBsoft.Wordzz.Contracts.Entities
         public uint HighScorePlay { get; set; }
         public string HighScorePlayOpponent { get; set; }
         public uint HighScoreWord { get; set; }
-        public string HighScoreWordOpponent { get; set; }
-        public uint LowScoreGame { get; set; }
-        public string LowScoreGameOpponent { get; set; }
-        public uint LowScorePlay { get; set; }
-        public string LowScorePlayOpponent { get; set; }
-        public uint LowScoreWord { get; set; }
-        public string LowScoreWordOpponent { get; set; }
+        public string HighScoreWordName { get; set; }
+        public string HighScoreWordOpponent { get; set; }       
         public string MostUsedWord { get; set; }
         public string MostFrequentOpponent { get; set; }
     }

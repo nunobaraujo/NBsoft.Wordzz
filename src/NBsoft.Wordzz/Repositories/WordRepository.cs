@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Repositories
 {
-    public class WordRepository : IWordRepository
+    internal class WordRepository : IWordRepository
     {
         private readonly ILogger _log;
         private readonly Func<IDbConnection> _createdDbConnection;

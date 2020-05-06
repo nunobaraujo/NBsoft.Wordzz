@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Repositories
@@ -62,11 +63,42 @@ namespace NBsoft.Wordzz.Repositories
                     throw new Exception($"ExecuteAsync failed: {query}");
 
                 transaction.Commit();
-                return board;
+                return await Get(lastId);
             }
             catch (Exception ex)
             {
                 await _log?.ErrorAsync("Error inserting board", ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> Delete(int id)
+        {
+            try
+            {
+                if (id < 0)
+                    return false;
+
+                var existing = Get(id);
+                if (existing == null)
+                    return false;
+
+                using var cnn = createdDbConnection();
+                cnn.Open();
+                var trans = cnn.BeginTransaction();
+
+                var query = "DELETE FROM BoardTile WHERE BoardId = @id";
+                var result = await cnn.ExecuteAsync(query, new { id }, trans);
+                
+                query = "DELETE FROM Board WHERE Id = @id";
+                result = await cnn.ExecuteAsync(query, new { id }, trans);
+                trans.Commit();
+
+                return result == 1;
+            }
+            catch (Exception ex)
+            {
+                await _log?.ErrorAsync("Error getting board", ex);
                 throw;
             }
         }
@@ -102,8 +134,7 @@ namespace NBsoft.Wordzz.Repositories
         public async Task<IEnumerable<IBoard>> List()
         {
             try
-            {                
-
+            {
                 using var cnn = createdDbConnection();
                 var query = "SELECT * FROM Board";
                 return await cnn.QueryAsync<Board>(query);

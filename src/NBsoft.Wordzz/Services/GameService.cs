@@ -20,7 +20,9 @@ namespace NBsoft.Wordzz.Services
         private readonly IUserRepository userRepository;
         private readonly IGameRepository gameRepository;
         private readonly IBoardRepository boardRepository;
+        
         private readonly ILexiconService lexiconService;
+        private readonly IStatService statService;
 
 
         private readonly List<IGame> activeGames;
@@ -28,12 +30,13 @@ namespace NBsoft.Wordzz.Services
         private readonly ILogger logger;
                 
 
-        public GameService(IUserRepository userRepository, IGameRepository gameRepository, IBoardRepository boardRepository, ILexiconService lexiconService, ILogger logger)
+        public GameService(IUserRepository userRepository, IGameRepository gameRepository, IBoardRepository boardRepository, ILexiconService lexiconService, IStatService statService, ILogger logger)
         {
             this.userRepository = userRepository;
             this.gameRepository = gameRepository;
             this.boardRepository = boardRepository;
             this.lexiconService = lexiconService;
+            this.statService = statService;
             this.logger = logger;
 
             activeGames = new List<IGame>();
@@ -475,10 +478,14 @@ namespace NBsoft.Wordzz.Services
             game.P1FinalScore = game.PlayMoves
                     .Where(m => m.Player == game.Player01.UserName)
                     .Sum(m => m.Score) - game.Player01.Rack.Sum(l => l.Char.LetterValue(game.Language));
+            if (game.P1FinalScore < 0)
+                game.P1FinalScore = 0;
 
             game.P2FinalScore = game.PlayMoves
                 .Where(m => m.Player == game.Player02.UserName)
                 .Sum(m => m.Score) - game.Player02.Rack.Sum(l => l.Char.LetterValue(game.Language));
+            if (game.P2FinalScore < 0)
+                game.P2FinalScore = 0;
 
             IGamePlayer winner;
             IGamePlayer looser;
@@ -529,6 +536,9 @@ namespace NBsoft.Wordzz.Services
             };
             res.P1Average = res.P1PlayCount == 0 ? 0 : res.P1Score / res.P1PlayCount;
             res.P2Average = res.P2PlayCount == 0 ? 0 : res.P2Score / res.P2PlayCount;
+
+            statService.UpdateStats(game.Id);
+
             return res;
         }
 

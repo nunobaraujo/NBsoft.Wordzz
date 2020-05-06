@@ -136,17 +136,12 @@ CREATE TABLE `UserStats` (
     Draws    		        int UNSIGNED        NOT NULL,
     TotalScore    		    int UNSIGNED        NOT NULL,
     HighScoreGame  		    int UNSIGNED        NOT NULL,
-    HighScoreGameOpponent   char(128)     	    NOT NULL,
+    HighScoreGameOpponent   char(128)     	    NULL,
     HighScorePlay  		    int UNSIGNED        NOT NULL,
-    HighScorePlayOpponent   char(128)     	    NOT NULL,
+    HighScorePlayOpponent   char(128)     	    NULL,
     HighScoreWord  		    int UNSIGNED        NOT NULL,
-    HighScoreWordOpponent   char(128)     	    NOT NULL,
-    LowScoreGame  		    int UNSIGNED        NOT NULL,
-    LowScoreGameOpponent    char(128)     	    NOT NULL,
-    LowScorePlay  		    int UNSIGNED        NOT NULL,
-    LowScorePlayOpponent    char(128)     	    NOT NULL,
-    LowScoreWord  		    int UNSIGNED        NOT NULL,
-    LowScoreWordOpponent    char(128)     	    NOT NULL,
-    MostUsedWord            char(128)           NOT NULL,
-    MostFrequentOpponent    char(128)           NOT NULL
+    HighScoreWordName       char(255)     	    NULL,
+    HighScoreWordOpponent   char(128)     	    NULL,
+    MostUsedWord            char(128)           NULL,
+    MostFrequentOpponent    char(128)           NULL
 );

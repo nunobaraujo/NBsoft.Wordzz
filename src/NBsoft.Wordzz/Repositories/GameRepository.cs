@@ -102,7 +102,7 @@ namespace NBsoft.Wordzz.Repositories
             }
         }
 
-        public async Task<IEnumerable<GameDataModel>> GeByUser(string userName)
+        public async Task<IEnumerable<GameDataModel>> GetByUser(string userName)
         {
             try
             {
@@ -170,7 +170,7 @@ namespace NBsoft.Wordzz.Repositories
             }
         }
 
-        public async Task<IEnumerable<GameMoveDataModel>> GetMovesByPlayer(string userId)
+        public async Task<IEnumerable<GameMoveDataModel>> GetMovesByUser(string userId)
         {
             try
             {

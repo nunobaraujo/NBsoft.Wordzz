@@ -1,4 +1,5 @@
 ﻿using NBsoft.Wordzz.Contracts;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Core.Repositories
@@ -9,5 +10,6 @@ namespace NBsoft.Wordzz.Core.Repositories
         Task<IUserStats> Add(IUserStats userStats);
         Task<IUserStats> Update(IUserStats userStats);
         Task Delete(string userName);
+        Task<IEnumerable<IUserStats>> GetHighScores();
     }
 }
