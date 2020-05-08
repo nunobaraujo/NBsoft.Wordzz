@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Authors>nbsoft.pt</Authors>
+    <Product>Wordzz.Contracts</Product>
+    <Description>Wordzz Contracts Library</Description>
+    <Copyright>© 2020 Nuno Benjamim Salgado Alves de Araújo</Copyright>
+    <PackageProjectUrl>http://www.nbsoft.pt</PackageProjectUrl>
+    <PackageIcon>NB.png</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="NB.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>

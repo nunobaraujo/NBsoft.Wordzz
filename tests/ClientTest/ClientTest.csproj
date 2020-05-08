@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\NBsoft.Wordzz.Contracts\NBsoft.Wordzz.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Contracts\Wordzz.Contracts.csproj" />
   </ItemGroup>
 
 </Project>
