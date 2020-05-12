@@ -2,21 +2,24 @@
 using NBsoft.Wordzz.Contracts.Requests;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace ClientTest
 {
     class Program
     {
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
             Console.WriteLine("Hello World!");
             Console.ReadLine();
             try
             {
-                using (var client = ClientFactory.Create("http://localhost:5005"))
+                /*using (var client = ClientFactory.Create("http://localhost:5005"))
                 {
+                    
                     var user = await client.Login("sa", "#Na123@10");
 
                     var dictionary = await client.LexiconApi.GetDictionary("en-us");
@@ -24,7 +27,7 @@ namespace ClientTest
                     var data = await dictionary.ReadAsStreamAsync();
                     SaveDictionary(data, (int)dictionary.Headers.ContentLength.Value, "en-us");
                     Console.WriteLine(dictionary);
-                    /*
+                    
                     var dictionary = ReadDictionaryFile(@"D:\dev\en-us.txt");
 
                     var result = await client.LexiconApi.AddDictionary(new DictionaryRequest
@@ -33,9 +36,12 @@ namespace ClientTest
                         Language = "en-us",
                         Words = dictionary
                     });
-                    */
+                    
 
-                }
+                }*/
+
+                ConvertCommasToJson(new CultureInfo("en-us"), @"D:\dev\en-us.txt");
+
             }
             catch(Exception ex)
             {
@@ -43,7 +49,39 @@ namespace ClientTest
                 Console.ReadKey();
             }            
         }
+        private static void ConvertCommasToJson(CultureInfo culture, string originFile)
+        {
+            var words = ReadCommaDictionaryFile(originFile);
 
+            var lex = new Lexicon()
+            {
+                Language = culture.Name,
+                Description = culture.DisplayName,
+                Words = words
+            };
+            byte[] byteArray = Encoding.UTF8.GetBytes(lex.ToJson());
+            MemoryStream stream = new MemoryStream(byteArray);
+
+            var destination = $@"D:\dev\{lex.Language}.json";
+            SaveDictionary(stream, destination, false);
+
+
+        }
+
+        private static IEnumerable<string> ReadCommaDictionaryFile(string file)
+        {
+            var result = new List<string>();
+            string words="";
+            using (var fi = new System.IO.FileStream(file, System.IO.FileMode.Open, System.IO.FileAccess.Read))
+            using (var sr = new System.IO.StreamReader(fi))
+            {
+                while (!sr.EndOfStream)
+                {
+                    words = sr.ReadToEnd();
+                }
+            }
+            return words.Split(',');
+        }
         private static List<string> ReadDictionaryFile(string file)
         {
             var result = new List<string>();
@@ -58,14 +96,18 @@ namespace ClientTest
             }
             return result;
         }
-        private static string SaveDictionary(Stream webStream, int size, string filename) 
-        {            
-            var decompressesd = Zip.Decompress(ReadToEnd(webStream));
+        private static string SaveDictionary(Stream webStream, string filename, bool compressed) 
+        {
+            string value = "";
+            if (compressed)
+                value = Zip.Decompress(ReadToEnd(webStream));
+            else
+                value = Encoding.UTF8.GetString(ReadToEnd(webStream));
 
-            var fi = new FileInfo($@"D:\dev\{filename}.txt");
+            var fi = new FileInfo(filename);
             using var fsw = fi.OpenWrite();
             using var sw = new StreamWriter(fsw);
-            sw.Write(decompressesd);
+            sw.Write(value);
             return fi.FullName;
         }
         public static byte[] ReadToEnd(Stream stream)
@@ -118,6 +160,14 @@ namespace ClientTest
                     stream.Position = originalPosition;
                 }
             }
+        }
+
+        private class Lexicon
+        {
+            public string Description { get; set; }
+            public string Language { get; set; }
+            public IEnumerable<string> Words { get; set; }
+
         }
     }
 }

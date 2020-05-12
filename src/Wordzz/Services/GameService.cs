@@ -72,25 +72,6 @@ namespace NBsoft.Wordzz.Services
             return null;
         }        
 
-
-        public async Task<IGameQueue> SearchGame(string language, int boardId, string userName)
-        {
-            if (boardId == 0)
-            {
-                var b = await GetDefaultBoard();
-                boardId = b.Id;
-            }
-
-            // Validate language and board
-            var lexicon = await lexiconService.GetDictionary(language);
-            if (lexicon == null)
-                return null;
-            var board = await GetBoard(boardId);
-            if (board == null)
-                return null;
-
-            return gameQueueService.QueueGame(lexicon.Language, board.Id, userName);
-        }
         public async Task<IGameChallenge> ChallengeGame(string language, int boardId, string challenger, string challenged)
         {
             if (boardId == 0)
@@ -108,8 +89,7 @@ namespace NBsoft.Wordzz.Services
 
             var q = gameQueueService.QueueChallenge(lexicon.Language, board.Id, challenger, challenged);
             return new GameChallenge { Id = q.Id, Language = q.Language, BoardId = q.BoardId, Origin = q.Player1, Destination = q.Player2 };
-        }
-        
+        }        
         public async Task<IGame> AcceptChallenge(string queueId, bool accept)
         {
             var q = gameQueueService.GetQueue(queueId);
@@ -129,6 +109,7 @@ namespace NBsoft.Wordzz.Services
 
         public Task<IEnumerable<string>> GetContacts(string userId) => userRepository.GetContacts(userId);
         public IEnumerable<IGame> GetActiveGames(string userName) => activeGames.Where(x => x.Player01.UserName == userName || x.Player02.UserName == userName);
+        public IEnumerable<IGame> GetAllActiveGames() => activeGames;
         public IEnumerable<string> GetActiveGameOpponents(string userName) 
         {
             var userGames = GetActiveGames(userName);
@@ -263,7 +244,7 @@ namespace NBsoft.Wordzz.Services
         }
         public async Task<PlayResult> Pass(string gameId, string username)
         {
-            var game = activeGames.SingleOrDefault(g => g.Id == gameId) as Game;
+            Game game = activeGames.SingleOrDefault(g => g.Id == gameId) as Game;
             if (game == null)
             {
                 string message = $"Invalid game: {gameId}";
@@ -546,6 +527,9 @@ namespace NBsoft.Wordzz.Services
 
             var res = new GameResult
             {
+                GameId = game.Id,
+                Player1 = game.Player01.UserName,
+                Player2 = game.Player02.UserName,
                 Winner = winner?.UserName,
                 Duration = Math.Round((game.FinishDate.Value - game.CreationDate).TotalMinutes, 2),
                 P1Score = game.PlayMoves.Where(m => m.Player == game.Player01.UserName).Sum(m => m.Score),
@@ -671,7 +655,8 @@ namespace NBsoft.Wordzz.Services
             lexiconLetters.Remove(emptySpace);
             return lexiconLetters;
         }
-        #endregion 
-        
+                
+        #endregion
+
     }
 }
