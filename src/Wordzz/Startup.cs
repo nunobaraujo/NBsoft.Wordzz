@@ -24,6 +24,7 @@ namespace NBsoft.Wordzz
 {
     public class Startup
     {
+        private AppSettings settings;
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -100,28 +101,27 @@ namespace NBsoft.Wordzz
                 options.OperationFilter<JWTAuthOperationFilter>();
             });
 
-            var settings = Configuration.Get<AppSettings>();
+            settings = Configuration.Get<AppSettings>();
 
             SetupLoggers(services, settings);
 
             services.RegisterRepositories(settings)
+                .RegisterCache()
                 .RegisterServices();
+                        
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-        {
+        {   
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
 
             app.UseRouting();
-
-            //app.UseCors(x => x
-            //    .AllowAnyOrigin()
-            //    .AllowAnyMethod()
-            //    .AllowAnyHeader());
+                        
             app.UseCors("CorsPolicy");
 
             app.UseAuthentication();
@@ -138,6 +138,9 @@ namespace NBsoft.Wordzz
                 endpoints.MapHub<GameHub>(GameHub.Address);
                 endpoints.MapControllers();
             });
+
+            Task.Run(async () => await app.ValidateAdminUser(Program.Log, settings.Wordzz));
+            Task.Run(async () => await app.ValidateBoard(Program.Log));
         }
 
         private static void SetupLoggers(IServiceCollection services, AppSettings settings)

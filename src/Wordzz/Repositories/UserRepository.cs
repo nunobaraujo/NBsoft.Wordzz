@@ -31,8 +31,6 @@ namespace NBsoft.Wordzz.Repositories
             _getSqlInsertFields = getSqlInsertFields;
             _log = log;
             _encryptionKey = encryptionKey;
-
-            Task.Run(() => CheckAdminUser()).Wait();
         }
                 
         public async Task<IUser> Add(IUser user,string email)
@@ -341,46 +339,7 @@ namespace NBsoft.Wordzz.Repositories
         }
 
 
-        private async Task CheckAdminUser()
-        {
-            var admin = await Get("sa");
-            if (admin != null)
-                return;
-
-            var user = new User
-            {
-                UserName = "sa",
-                CreationDate = DateTime.UtcNow,
-                Deleted = false
-            };
-            var withPassword = user.SetPassword("#Na123@10", _encryptionKey);
-            var added = await Add(withPassword, "geral@nbsoft.pt");
-
-            var details = new UserDetails
-            {
-                UserName = added.UserName,
-                Address = "Famalicão",
-                City = "Vila Nova de Famalição",
-                Country = "Portugal",
-                Email = "geral@nbsoft.pt",
-                FirstName = "Server",
-                LastName = "Admin",
-                PostalCode = "4760"
-            };
-            var addedDetails = await UpdateDetails(details);
-
-            var settings = new UserSettings
-            {
-                UserName = addedDetails.UserName,
-                MainSettings = new MainSettings { UserId = addedDetails.UserName , DefaultBoard = 1, Language = "en-us" }.ToJson(),
-                WindowsSettings = new WindowsSettings { UserId = addedDetails.UserName }.ToJson(),
-                AndroidSettings = new AndroidSettings { UserId = addedDetails.UserName }.ToJson(),
-                IOSSettings = new IOSSettings { UserId = addedDetails.UserName }.ToJson()
-            };
-            var addedSettings = await UpdateSettings(settings);
-            await _log.WarningAsync("Added server admin user");
-
-        }
+        
 
         public async Task<string> AddContact(string userName, string contactUserName)
         {

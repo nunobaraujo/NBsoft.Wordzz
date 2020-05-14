@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace NBsoft.Wordzz.Extensions
 {
@@ -142,6 +143,17 @@ namespace NBsoft.Wordzz.Extensions
             }
 
         }
-        
+
+        public static IEnumerable<char> GetLettersOnly(this string language)
+        {
+            // Remove empty space from available letters
+            var lexiconLetters = new System.Globalization.CultureInfo(language)
+                .GetLetters()
+                .ToList();
+            var emptySpace = lexiconLetters.Single(c => c == ' ');
+            lexiconLetters.Remove(emptySpace);
+            return lexiconLetters;
+        }
+
     }
 }
