@@ -207,8 +207,11 @@ namespace NBsoft.Wordzz.Extensions
                 if (word.Letters.Count() > 1)
                 {
                     // check if word was already added (or it will add the main word for every checked letter)
-                    var hAlreadyExists = horizontalWords
-                    .SingleOrDefault(w => w.GetStartX() == word.GetStartX() && w.GetEndX() == word.GetEndX());
+                    var hAlreadyExists = horizontalWords.SingleOrDefault(w =>
+                        w.GetStartY() == word.GetStartY() &&
+                        w.GetEndY() == word.GetEndY() &&
+                        w.GetStartX() == word.GetStartX() &&
+                        w.GetEndX() == word.GetEndX());
                     if (hAlreadyExists == null)
                     {
                         var wordString = word.GetString();
@@ -231,9 +234,13 @@ namespace NBsoft.Wordzz.Extensions
                 word = game.Board.GetVerticalWord(allLetters, letter);
                 if (word.Letters.Count() > 1) 
                 {
-                    // check if word was already added (or it will add the main word for every checked letter)                                
-                    var vAlreadyExists = verticalWords
-                        .SingleOrDefault(w => w.GetStartY() == word.GetStartY() && w.GetEndY() == word.GetEndY());
+                    // check if word was already added (or it will add the main word for every checked letter)                                                    
+                    var vAlreadyExists = verticalWords.SingleOrDefault(w => 
+                        w.GetStartY() == word.GetStartY() && 
+                        w.GetEndY() == word.GetEndY() && 
+                        w.GetStartX() == word.GetStartX() && 
+                        w.GetEndX() == word.GetEndX());
+                    
                     if (vAlreadyExists == null)
                     {
                         var wordString = word.GetString();                        
