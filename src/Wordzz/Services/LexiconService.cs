@@ -37,9 +37,21 @@ namespace NBsoft.Wordzz.Services
             this.wordRepository = wordRepository;
             this.settings = settings.Value;
             dictionaries = new Dictionary<string, IEnumerable<string>>();
-            availableDictionaries = new List<ILexicon>();                     
+            availableDictionaries = new List<ILexicon>();
+
+            Task.Run(async () => await Initialize()).Wait();
         }
 
+        private async Task Initialize()
+        {
+            await logger.InfoAsync("Initializing LexiconService...");            
+            var languages = await AvailableLexicons();
+            foreach (var l in languages)
+            {
+                await LoadDictionary(l.Language);
+            }
+            await logger.InfoAsync("LexiconService Initialized!");
+        }
 
 
         public async Task<ILexicon> GetDictionary(string language)

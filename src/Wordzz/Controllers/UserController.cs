@@ -89,7 +89,7 @@ namespace NBsoft.Wordzz.Controllers
 
         [HttpGet, Route("Details")]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType(typeof(IUser), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(IUserDetails), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> GetDetails()
         {
             string accessToken = await HttpContext.GetToken();
@@ -126,6 +126,7 @@ namespace NBsoft.Wordzz.Controllers
                     throw new NotSupportedException("You are not allowed to change other user's details");
 
                 var updated = await userRepository.UpdateDetails(details);
+                await log.InfoAsync("User Details updated", context: session.UserId);
                 return Ok(updated);
             }
             catch (Exception ex)
@@ -269,6 +270,7 @@ namespace NBsoft.Wordzz.Controllers
                 var existing = (await userRepository.GetSettings(session.UserId)).ToDto<UserSettings>();
                 existing.MainSettings = settings.ToJson();
                 var updated = await userRepository.UpdateSettings(existing);
+                await log.InfoAsync("User Settings updated", context: session.UserId);
                 return Ok(settings);
             }
             catch (Exception ex)
@@ -319,6 +321,7 @@ namespace NBsoft.Wordzz.Controllers
                 var existing = (await userRepository.GetSettings(session.UserId)).ToDto<UserSettings>();
                 existing.AndroidSettings = settings.ToJson();
                 var updated = await userRepository.UpdateSettings(existing);
+                await log.InfoAsync("User Android Settings updated", context: session.UserId);
                 return Ok(settings);
             }
             catch (Exception ex)
@@ -340,7 +343,7 @@ namespace NBsoft.Wordzz.Controllers
             try
             {
                 var settings = await userRepository.GetSettings(session.UserId);
-                var iOSSettings = settings?.IOSSettings?.FromJson<IOSSettings>();
+                var iOSSettings = settings?.IOSSettings?.FromJson<IOSSettings>();                
                 return Ok(iOSSettings);
             }
             catch (Exception ex)
@@ -369,6 +372,7 @@ namespace NBsoft.Wordzz.Controllers
                 var existing = (await userRepository.GetSettings(session.UserId)).ToDto<UserSettings>();
                 existing.IOSSettings = settings.ToJson();
                 var updated = await userRepository.UpdateSettings(existing);
+                await log.InfoAsync("User IOS Settings updated", context: session.UserId);
                 return Ok(settings);
             }
             catch (Exception ex)
@@ -419,6 +423,7 @@ namespace NBsoft.Wordzz.Controllers
                 var existing = (await userRepository.GetSettings(session.UserId)).ToDto<UserSettings>();
                 existing.WindowsSettings = settings.ToJson();
                 var updated = await userRepository.UpdateSettings(existing);
+                await log.InfoAsync("User Windows Settings updated", context: session.UserId);
                 return Ok(settings);
             }
             catch (Exception ex)

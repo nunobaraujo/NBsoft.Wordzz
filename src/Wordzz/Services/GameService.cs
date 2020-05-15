@@ -47,16 +47,10 @@ namespace NBsoft.Wordzz.Services
             this.statService = statService;
             this.gameQueueService = gameQueueService;
             this.logger = logger;
-                        
-            
-
-            Task.Run(async () => await InitializeGameService()).Wait();
         }
 
         public async Task<string> GetGameMatch(string userName)
-        {
-            gameCache.RemovePending(userName);            
-
+        {            
             var queue = gameQueueService.DequeueMatch(userName);
             if (queue != null)
             {
@@ -66,6 +60,14 @@ namespace NBsoft.Wordzz.Services
                 else
                     gameCache.AddPending(new PendingGame { UserName = queue.Queue01.Player1, GameId = newGame.Id});
                 return newGame.Id;
+            }
+            else
+            {
+                var pending = gameCache.RemovePending(userName);
+                if (pending != null)
+                {
+                    return pending.GameId;
+                }
             }
             return null;
         }        
@@ -342,17 +344,6 @@ namespace NBsoft.Wordzz.Services
 
         #region Privates
 
-        private async Task InitializeGameService()
-        {
-            await logger.InfoAsync("Initializing GameService...");
-            // Load available dictionaries into lexiconService;
-            var languages = await lexiconService.AvailableLexicons();
-            foreach (var l in languages)
-            {
-                await lexiconService.LoadDictionary(l.Language);
-            }
-            await logger.InfoAsync("GameService Initialized!");
-        }
 
         private async Task<IGame> NewSoloGame(string language, int boardId, string player1UserName, int aiLevel)
         {
