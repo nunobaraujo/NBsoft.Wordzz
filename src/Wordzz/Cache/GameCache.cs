@@ -65,15 +65,16 @@ namespace NBsoft.Wordzz.Cache
             logger.Info($"Added pending game.", context: $"{game.GameId}:{game.UserName}");
         }
 
-        public bool RemovePending(string userName)
+        public PendingGame RemovePending(string userName)
         {
             var pending = pendingGames.FirstOrDefault(p => p.UserName == userName);
             if (pending != null)
             {
                 logger.Info($"Removed pending game.", context: $"{pending.GameId}:{pending.UserName}");
-                return pendingGames.Remove(pending);
+                pendingGames.Remove(pending);
+                return pending;
             }
-            return false;
+            return null;
         }
 
         private async Task LoadGames()

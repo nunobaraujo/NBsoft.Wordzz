@@ -11,7 +11,7 @@ namespace NBsoft.Wordzz.Core.Cache
 
         PendingGame[] PendingGames { get; }
         void AddPending(PendingGame game);
-        bool RemovePending(string userName);
+        PendingGame RemovePending(string userName);
 
     }
 }
