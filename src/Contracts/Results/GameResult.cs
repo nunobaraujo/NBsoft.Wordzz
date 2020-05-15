@@ -5,7 +5,10 @@ namespace NBsoft.Wordzz.Contracts.Results
     [Serializable]
     public class GameResult
     {
-        public string Winner  { get; set; }
+        public string GameId { get; set; }
+        public string Player1 { get; set; }
+        public string Player2 { get; set; }
+        public string Winner { get; set; }
         public int P1Score { get; set; }
         public double P1Average { get; set; }
         public int P1PlayCount { get; set; }

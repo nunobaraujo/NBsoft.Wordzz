@@ -69,15 +69,21 @@ namespace NBsoft.Wordzz.Services
                                
                 
         public async Task LoadDictionary(string language)
-        {
-            if (!dictionaries.ContainsKey(language))
+        {            
+            bool added = false;
+            lock (dictionaryLock)
+            {
+                if (!dictionaries.ContainsKey(language))
+                {
+                    dictionaries.Add(language, null);
+                    added = true;
+                }
+            }
+            if (added)
             {
                 var dictionary = await wordRepository.ListWords(language);
                 await logger.InfoAsync($"Loaded {language} dictionary: {dictionary.Count()} words");
-                lock (dictionaryLock)
-                {
-                    dictionaries.Add(language, dictionary);
-                }
+                dictionaries[language] = dictionary;
             }
         }
 

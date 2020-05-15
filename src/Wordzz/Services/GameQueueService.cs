@@ -34,6 +34,8 @@ namespace NBsoft.Wordzz.Services
         }
         public IGameQueue QueueChallenge(string language, int boardId, string challengerName, string challengedNamed)
         {
+            if (challengerName == null || challengerName == challengedNamed)
+                throw new InvalidOperationException("Invalid Challenge");
             /* 
              * Does the queue has player2 ? 
              * If it does game hub will send a game request to player2
@@ -60,7 +62,6 @@ namespace NBsoft.Wordzz.Services
             ProcessQueue(newQueue);
             return newQueue;
         }
-
         public bool RemoveQueue(string queueId)
         {
             var q = GetQueue(queueId);
@@ -69,19 +70,30 @@ namespace NBsoft.Wordzz.Services
             return false;
         }
 
+        public IEnumerable<IGameQueue> AllQueues() => gameQueue;
         public IGameQueue GetQueue(string queueId) => gameQueue.FirstOrDefault(q => q.Id == queueId);
+        
+        /// <summary>
+        /// Returns all queues from the user either he is player1 or player2
+        /// </summary>
+        /// <param name="userName"></param>
+        /// <returns></returns>
+        public IEnumerable<IGameQueue> GetQueues(string userName) => gameQueue.Where(q => q.Player1 == userName || q.Player2 == userName);
 
-        public IEnumerable<IGameQueue> GetSentChallenges(string userName)
-        {
-            // Player 1 is the challenger Player 2 was the challenged player
-            // for it to be a challenge, player 2 must not be null
-            return gameQueue.Where(q => q.Player1 == userName && !string.IsNullOrEmpty(q.Player2));
-        }
-        public IEnumerable<IGameQueue> GetReceivedChallenges(string userName)
-        {
-            // Player 2 was the challenged player, player 1 is the challenger
-            return gameQueue.Where(q => q.Player2 == userName);
-        }
+        /// <summary>
+        /// Player 1 is the challenger Player 2 was the challenged player
+        /// for it to be a challenge, player 2 must not be null
+        /// </summary>
+        /// <param name="userName"></param>
+        /// <returns></returns>
+        public IEnumerable<IGameQueue> GetSentChallenges(string userName) => gameQueue.Where(q => q.Player1 == userName && !string.IsNullOrEmpty(q.Player2));
+
+        /// <summary>
+        /// Player 2 was the challenged player, player 1 is the challenger
+        /// </summary>
+        /// <param name="userName"></param>
+        /// <returns></returns>
+        public IEnumerable<IGameQueue> GetReceivedChallenges(string userName) => gameQueue.Where(q => q.Player2 == userName);
 
         public GameMatch DequeueMatch(string userName)
         {

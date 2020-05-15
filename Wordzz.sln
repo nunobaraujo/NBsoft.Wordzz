@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Dockerfile = Dockerfile
 		dockerPublish.ps = dockerPublish.ps
 		README.md = README.md
-		_MySQL_Init_Script\wordzz.mysql.sql = _MySQL_Init_Script\wordzz.mysql.sql
+		_Wordzz_Init_Script\wordzz.mysql.sql = _Wordzz_Init_Script\wordzz.mysql.sql
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wordzz.Contracts", "src\Contracts\Wordzz.Contracts.csproj", "{1FA52692-CCDA-4DDD-A8B5-A5F9E3E52DC0}"

@@ -8,14 +8,14 @@ using System.Threading.Tasks;
 namespace NBsoft.Wordzz.Core.Services
 {
     public interface IGameService
-    {   
-        Task<IGameQueue> SearchGame(string language, int boardId, string userName);
+    {
         Task<IGameChallenge> ChallengeGame(string language, int boardId, string challenger, string challenged);
         
         Task<IGame> AcceptChallenge(string queueId, bool accept);
 
         Task<IEnumerable<string>> GetContacts(string userId);
         IEnumerable<IGame> GetActiveGames(string userName);
+        IEnumerable<IGame> GetAllActiveGames();
         IEnumerable<string> GetActiveGameOpponents(string userName);
         
         Task<PlayResult> Play(string gameId, string username, PlayLetter[] letters);

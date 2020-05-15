@@ -4,6 +4,7 @@ using NBsoft.Wordzz.Contracts;
 using NBsoft.Wordzz.Contracts.Entities;
 using NBsoft.Wordzz.Contracts.Results;
 using NBsoft.Wordzz.Core;
+using NBsoft.Wordzz.Core.Cache;
 using NBsoft.Wordzz.Core.Models;
 using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
@@ -22,75 +23,53 @@ namespace NBsoft.Wordzz.Services
         private readonly IUserRepository userRepository;
         private readonly IGameRepository gameRepository;
         private readonly IBoardRepository boardRepository;
-        
+
+        private readonly IGameCache gameCache;
+
         private readonly ILexiconService lexiconService;
         private readonly IStatService statService;
         private readonly IGameQueueService gameQueueService;
-
-        private readonly List<IGame> activeGames;
+        
         private readonly ILogger logger;
 
-        private readonly List<PendingGame> pendingGames;
-
-        public GameService(IUserRepository userRepository, IGameRepository gameRepository, IBoardRepository boardRepository, ILexiconService lexiconService, IStatService statService, IGameQueueService gameQueueService, ILogger logger)
+        public GameService(ILogger logger,
+            IGameCache gameCache,
+            IUserRepository userRepository, IGameRepository gameRepository, IBoardRepository boardRepository, 
+            ILexiconService lexiconService, IStatService statService, IGameQueueService gameQueueService)
         {
             this.userRepository = userRepository;
             this.gameRepository = gameRepository;
             this.boardRepository = boardRepository;
+
+            this.gameCache = gameCache;
+
             this.lexiconService = lexiconService;
             this.statService = statService;
             this.gameQueueService = gameQueueService;
             this.logger = logger;
                         
-            activeGames = new List<IGame>();
-            pendingGames = new List<PendingGame>();
-
+            
 
             Task.Run(async () => await InitializeGameService()).Wait();
         }
 
-       
         public async Task<string> GetGameMatch(string userName)
         {
-            var pending = pendingGames.FirstOrDefault(p => p.UserName == userName);
-            if (pending != null)
-            {
-                pendingGames.Remove(pending);
-                return pending.GameId;
-            }
+            gameCache.RemovePending(userName);            
 
             var queue = gameQueueService.DequeueMatch(userName);
             if (queue != null)
             {
                 var newGame = await StartGame(queue.Queue01, queue.Queue02);
                 if (queue.Queue01.Player1 == userName)
-                    pendingGames.Add(new PendingGame { UserName = queue.Queue02.Player1, GameId = newGame.Id });
+                    gameCache.AddPending(new PendingGame { UserName = queue.Queue02.Player1, GameId = newGame.Id });
                 else
-                    pendingGames.Add(new PendingGame { UserName = queue.Queue01.Player1, GameId = newGame.Id});
+                    gameCache.AddPending(new PendingGame { UserName = queue.Queue01.Player1, GameId = newGame.Id});
                 return newGame.Id;
             }
             return null;
         }        
 
-
-        public async Task<IGameQueue> SearchGame(string language, int boardId, string userName)
-        {
-            if (boardId == 0)
-            {
-                var b = await GetDefaultBoard();
-                boardId = b.Id;
-            }
-
-            // Validate language and board
-            var lexicon = await lexiconService.GetDictionary(language);
-            if (lexicon == null)
-                return null;
-            var board = await GetBoard(boardId);
-            if (board == null)
-                return null;
-
-            return gameQueueService.QueueGame(lexicon.Language, board.Id, userName);
-        }
         public async Task<IGameChallenge> ChallengeGame(string language, int boardId, string challenger, string challenged)
         {
             if (boardId == 0)
@@ -108,8 +87,7 @@ namespace NBsoft.Wordzz.Services
 
             var q = gameQueueService.QueueChallenge(lexicon.Language, board.Id, challenger, challenged);
             return new GameChallenge { Id = q.Id, Language = q.Language, BoardId = q.BoardId, Origin = q.Player1, Destination = q.Player2 };
-        }
-        
+        }        
         public async Task<IGame> AcceptChallenge(string queueId, bool accept)
         {
             var q = gameQueueService.GetQueue(queueId);
@@ -128,7 +106,8 @@ namespace NBsoft.Wordzz.Services
         }
 
         public Task<IEnumerable<string>> GetContacts(string userId) => userRepository.GetContacts(userId);
-        public IEnumerable<IGame> GetActiveGames(string userName) => activeGames.Where(x => x.Player01.UserName == userName || x.Player02.UserName == userName);
+        public IEnumerable<IGame> GetActiveGames(string userName) => gameCache.ActiveGames.Where(x => x.Player01.UserName == userName || x.Player02.UserName == userName);
+        public IEnumerable<IGame> GetAllActiveGames() => gameCache.ActiveGames;
         public IEnumerable<string> GetActiveGameOpponents(string userName) 
         {
             var userGames = GetActiveGames(userName);
@@ -143,7 +122,7 @@ namespace NBsoft.Wordzz.Services
 
         public async Task<PlayResult> Play(string gameId, string username, PlayLetter[] letters)
         {
-            var game = activeGames.SingleOrDefault(g => g.Id == gameId) as Game;
+            var game = gameCache.ActiveGames.SingleOrDefault(g => g.Id == gameId) as Game;
             if (game == null)
             {
                 string message = $"Invalid game: {gameId}";
@@ -263,7 +242,7 @@ namespace NBsoft.Wordzz.Services
         }
         public async Task<PlayResult> Pass(string gameId, string username)
         {
-            var game = activeGames.SingleOrDefault(g => g.Id == gameId) as Game;
+            Game game = gameCache.ActiveGames.SingleOrDefault(g => g.Id == gameId) as Game;
             if (game == null)
             {
                 string message = $"Invalid game: {gameId}";
@@ -333,7 +312,7 @@ namespace NBsoft.Wordzz.Services
         }
         public async Task<PlayResult> Forfeit(string gameId, string username)
         {
-            var game = activeGames.SingleOrDefault(g => g.Id == gameId) as Game;
+            var game = gameCache.ActiveGames.SingleOrDefault(g => g.Id == gameId) as Game;
             if (game == null)
             {
                 string message = $"Invalid game: {gameId}";
@@ -366,26 +345,6 @@ namespace NBsoft.Wordzz.Services
         private async Task InitializeGameService()
         {
             await logger.InfoAsync("Initializing GameService...");
-
-            // Check if standard board exists
-            var boards = await boardRepository.List();
-            var standardBoard = boards.SingleOrDefault(b => b.Name == "Standard");
-            if (standardBoard == null)
-            {
-                var newBoard = GenerateBoard(15, "Standard");
-                var created = await boardRepository.Add(newBoard);
-            }
-            await logger.InfoAsync("Standard board checked.");
-
-            // Load Active Games
-            var activeG = await gameRepository.GetActive();
-            foreach (var g in activeG)
-            {
-                activeGames.Add(await LoadGame(g));
-            }
-            await logger.InfoAsync("Active games loaded.");
-
-
             // Load available dictionaries into lexiconService;
             var languages = await lexiconService.AvailableLexicons();
             foreach (var l in languages)
@@ -457,7 +416,7 @@ namespace NBsoft.Wordzz.Services
                 CurrentPlayer = player01.UserName,
                 Status = GameStatus.Ongoing,
                 CurrentStart = DateTime.UtcNow,
-                AvailableLetters = GetLexiconLetters(lexicon.Language)
+                AvailableLetters = lexicon.Language.GetLettersOnly()
             };            
             return game;
         }
@@ -476,8 +435,8 @@ namespace NBsoft.Wordzz.Services
 
             var game = await NewMultiPlayerGame(queue1.Language, queue1.BoardId, player1, player2);
             // Save game to DB
-            await gameRepository.Add(game.ToDataModel());            
-            activeGames.Add(game);
+            await gameRepository.Add(game.ToDataModel());
+            gameCache.AddGame(game);
 
             logger.Info($"Game Started = P1:{player1} P2:{player2} Language:{queue1.Language} Board:{queue1.BoardId}", context: game.Id);
             return game;
@@ -486,7 +445,7 @@ namespace NBsoft.Wordzz.Services
         {
 
             // Todo end game logic
-            var game = activeGames.SingleOrDefault(x => x.Id == gameId)?.ToDto<Game>();
+            var game = gameCache.ActiveGames.SingleOrDefault(x => x.Id == gameId)?.ToDto<Game>();
             if (game == null)
                 throw new ArgumentException("Invalid game id");
 
@@ -539,13 +498,15 @@ namespace NBsoft.Wordzz.Services
 
             // todo save game to db
             await gameRepository.Update(game.ToDataModel());
-
-            var ag = activeGames.Single(g => g.Id == game.Id);
-            activeGames.Remove(ag);
+                        
+            gameCache.RemoveGame(game.Id);
             await logger.InfoAsync($"GAME OVER! Winner:[{game.Winner}] Duration:[{Math.Round((game.FinishDate.Value-game.CreationDate).TotalMinutes,2)}]", context:game.Id);
 
             var res = new GameResult
             {
+                GameId = game.Id,
+                Player1 = game.Player01.UserName,
+                Player2 = game.Player02.UserName,
                 Winner = winner?.UserName,
                 Duration = Math.Round((game.FinishDate.Value - game.CreationDate).TotalMinutes, 2),
                 P1Score = game.PlayMoves.Where(m => m.Player == game.Player01.UserName).Sum(m => m.Score),
@@ -576,102 +537,17 @@ namespace NBsoft.Wordzz.Services
             var selected = boards.SingleOrDefault(b => b.Name == "Standard");            
             return await boardRepository.Get(selected.Id);
         }
-        private IBoard GenerateBoard(int size, string name)
-        {
-            var board = new Board();
-            board.Name = name;
-            board.BoardRows = size;
-            board.BoardColumns = size;
-            
-            var tiles = new List<BoardTile>();
-            for (int y = 1; y <= board.BoardColumns; y++)
-            {
-                for (int x = 1; x <= board.BoardRows; x++)
-                {                
-                    tiles.Add(new BoardTile { X = x, Y = y, Bonus = BonusType.Regular });
-                }
-            }
-            board.Tiles = tiles.ToArray();
-
-            var newBoard = board.ApplyBonusTiles();
-
-            return newBoard; ;
-        }
+        
 
         private IUser GetAI(int aiLevel)
         {
             throw new NotImplementedException();
         }
 
-        private async Task<IGame> LoadGame(GameDataModel src)
-        {
-            var player01 = await userRepository.Get(src.Player01);
-            var player02 = await userRepository.Get(src.Player02);
-            var p1Details = await userRepository.GetDetails(player01.UserName);
-            var p2Details = await userRepository.GetDetails(player02.UserName);
-
-            var moves = (await gameRepository.GetMoves(src.Id))
-                .OrderBy(m => m.PlayStart)
-                .ToArray();
-            var playMoves  = moves.Select(m => new PlayMove 
-            {
-                Player = m.PlayerId,
-                PlayStart = m.PlayStart,
-                PlayFinish = m.PlayFinish,
-                Score = m.Score,
-                Letters = m.Letters.FromJson<PlayLetter[]>(),
-                Words = m.Words.FromJson<PlayWord[]>()
-            });
-
-            return new Game
-            {
-                Id = src.Id,
-                Board = await boardRepository.Get(src.BoardId),
-                Language = src.Language,
-                CreationDate = src.CreationDate,
-                Player01 = new GamePlayer
-                {
-                    UserName = player01.UserName,
-                    FirstName = p1Details.FirstName,
-                    LastName = p1Details.LastName,
-                    Rack = src.Player01Rack.GetLetters(src.Language),
-                    Score = playMoves.Where(m => m.Player == player01.UserName).Sum(m => m.Score)
-                },
-                Player02 = new GamePlayer
-                {
-                    UserName = player02.UserName,
-                    FirstName = p2Details.FirstName,
-                    LastName = p2Details.LastName,
-                    Rack = src.Player02Rack.GetLetters(src.Language),
-                    Score = playMoves.Where(m => m.Player == player02.UserName).Sum(m => m.Score)
-                },
-                Status = (GameStatus)src.Status,
-                CurrentPlayer = src.CurrentPlayer,
-                CurrentStart = src.CurrentStart,
-                CurrentPauseStart = src.CurrentPauseStart,
-                LetterBag = new LetterBag(src.Language, src.LetterBag.FromJson<Letter[]>()),
-                Winner = src.Winner,
-                FinishReason = (FinishReason?)src.FinishReason,
-                ConsecutivePasses = src.ConsecutivePasses,
-                FinishDate = src.FinishDate,
-                P1FinalScore = src.P1FinalScore,
-                P2FinalScore = src.P2FinalScore,
-                AvailableLetters = GetLexiconLetters(src.Language),
-                PlayMoves = playMoves
-            };
-            
-        }
-        private List<char> GetLexiconLetters(string language)
-        {
-            // Remove empty space from available letters
-            var lexiconLetters = new System.Globalization.CultureInfo(language)
-                .GetLetters()
-                .ToList();
-            var emptySpace = lexiconLetters.Single(c => c == ' ');
-            lexiconLetters.Remove(emptySpace);
-            return lexiconLetters;
-        }
-        #endregion 
         
+        
+                
+        #endregion
+
     }
 }
