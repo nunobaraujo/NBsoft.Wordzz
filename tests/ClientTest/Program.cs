@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -40,7 +42,17 @@ namespace ClientTest
 
                 }*/
 
-                ConvertCommasToJson(new CultureInfo("en-us"), @"D:\dev\en-us.txt");
+                //ConvertCommasToJson(new CultureInfo("en-us"), @"D:\dev\en-us.txt");
+
+                var rawWords = ConvertPtDic(@"D:\dev\wordlist-ao-latest_UTF8.txt");
+                //var words = ExcludeProperNouns(rawWords)
+                var words = rawWords.Select(w => RemoveSpecials(w))
+                    .ToList();                
+                words.Sort();
+                WriteCommas(new CultureInfo("pt-pt"), words);
+                WriteJson(new CultureInfo("pt-pt"), words);
+
+
 
             }
             catch(Exception ex)
@@ -49,25 +61,100 @@ namespace ClientTest
                 Console.ReadKey();
             }            
         }
-        private static void ConvertCommasToJson(CultureInfo culture, string originFile)
+
+        private static IEnumerable<string> ExcludeProperNouns(IEnumerable<string> words)
         {
-            var words = ReadCommaDictionaryFile(originFile);
+            var result = new List<string>();
+            string propertNounsFile = @"D:\dev\nomes.txt";
+            var nouns = ReadCSV(propertNounsFile).Distinct().Select(n => n.ToUpper());
 
-            var lex = new Lexicon()
+            foreach (var word in words.Select(w => w.ToUpper()))
             {
-                Language = culture.Name,
-                Description = culture.DisplayName,
-                Words = words
-            };
-            byte[] byteArray = Encoding.UTF8.GetBytes(lex.ToJson());
-            MemoryStream stream = new MemoryStream(byteArray);
-
-            var destination = $@"D:\dev\{lex.Language}.json";
-            SaveDictionary(stream, destination, false);
-
+                if (!nouns.Contains(word))
+                {
+                    result.Add(word);
+                }
+                else
+                    Console.WriteLine($"Excluded: {word}");
+            }
+            return result;
 
         }
 
+        private static void ConvertCommasToJson(CultureInfo culture, string originFile)
+        {
+            var words = ReadCommaDictionaryFile(originFile);
+            WriteJson(culture, words);
+        }
+        
+
+        private static IEnumerable<string> ConvertPtDic(string file)
+        {
+            var words = ReadDictionaryFile(file);
+            var processedWords = new List<string>();
+            foreach (var word in words)
+            {
+                var index = word.IndexOf('/');
+                if (index == -1)
+                    index = word.IndexOf('\t');
+                if (index == -1)
+                    index = word.IndexOf(' ');
+                
+                var pword = word.ToUpper();
+                if (index > 0)
+                    pword = word.Substring(0, index).ToUpper();
+
+                if (pword.Contains('-'))
+                    continue;
+                                                
+                processedWords.Add(pword);
+            }            
+            return processedWords;
+        }
+        public static string RemoveSpecials(string word)
+        {
+            var clean = word
+                    .Replace("Á", "A")
+                    .Replace("À", "A")
+                    .Replace("Â", "A")
+                    .Replace("Ã", "A")
+
+                    .Replace("É", "E")
+                    .Replace("È", "E")
+                    .Replace("Ê", "E")
+
+                    .Replace("Í", "I")
+                    .Replace("Ì", "I")
+                    .Replace("Î", "I")
+
+                    .Replace("Ó", "O")
+                    .Replace("Ò", "O")
+                    .Replace("Ô", "O")
+                    .Replace("Õ", "O")
+
+                    .Replace("Ú", "U")
+                    .Replace("Ù", "U")
+                    .Replace("Û", "U");
+            return clean;
+        }
+
+        private static IEnumerable<string> ReadCSV(string file)
+        {            
+            var words = new List<string>();
+            using (var fi = new System.IO.FileStream(file, System.IO.FileMode.Open, System.IO.FileAccess.Read))
+            using (var sr = new System.IO.StreamReader(fi))
+            {
+                while (!sr.EndOfStream)
+                {
+                    var word = sr.ReadLine();
+                    var comma = word.IndexOf(',');
+                    if (comma > -1)
+                        word = word.Substring(0, comma);
+                    words.Add(word);
+                }
+            }
+            return words;
+        }
         private static IEnumerable<string> ReadCommaDictionaryFile(string file)
         {
             var result = new List<string>();
@@ -86,7 +173,7 @@ namespace ClientTest
         {
             var result = new List<string>();
             using (var fi = new System.IO.FileStream(file, System.IO.FileMode.Open, System.IO.FileAccess.Read))
-            using (var sr = new System.IO.StreamReader(fi))
+            using (var sr = new System.IO.StreamReader(fi, Encoding.UTF8))
             {
                 while (!sr.EndOfStream)
                 {
@@ -160,6 +247,30 @@ namespace ClientTest
                     stream.Position = originalPosition;
                 }
             }
+        }
+
+        private static void WriteJson(CultureInfo culture, IEnumerable<string> words)
+        {
+            var lex = new Lexicon()
+            {
+                Language = culture.Name,
+                Description = culture.DisplayName,
+                Words = words
+            };
+            byte[] byteArray = Encoding.UTF8.GetBytes(lex.ToJson());
+            MemoryStream stream = new MemoryStream(byteArray);
+
+            var destination = $@"D:\dev\{lex.Language}.json";
+            SaveDictionary(stream, destination, false);
+        }
+        private static void WriteCommas(CultureInfo culture, IEnumerable<string> words)
+        {
+            string value = string.Join(',', words);
+            byte[] byteArray = Encoding.UTF8.GetBytes(value);
+            MemoryStream stream = new MemoryStream(byteArray);
+
+            var destination = $@"D:\dev\{culture.Name}.csv";
+            SaveDictionary(stream, destination, false);
         }
 
         private class Lexicon
