@@ -3,8 +3,10 @@ using NBsoft.Logs;
 using NBsoft.Logs.Interfaces;
 using NBsoft.Wordzz.Contracts;
 using NBsoft.Wordzz.Contracts.Entities;
+using NBsoft.Wordzz.Core;
 using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
+using NBsoft.Wordzz.DictionaryApi;
 using NBsoft.Wordzz.Extensions;
 using NBsoft.Wordzz.Models;
 using System;
@@ -23,27 +25,27 @@ namespace NBsoft.Wordzz.Services
 
         private readonly IWordRepository wordRepository;
         private readonly ILogger logger;
-        private readonly WordzzSettings settings;
-        private readonly Dictionary<string, IEnumerable<string>> dictionaries;        
-        
+        private readonly Dictionary<string, IEnumerable<string>> dictionaries;
+        private readonly DictionaryApiFactory dictionaryApiFactory;
+
+
         private IEnumerable<ILexicon> availableDictionaries;
-        
-        
 
-
-        public LexiconService(ILogger logger, IWordRepository wordRepository, IOptions<WordzzSettings> settings)
+        public LexiconService(ILogger logger, IWordRepository wordRepository, IOptions<WordzzSettings> settings, DictionaryApiFactory dictionaryApiFactory)
         {
             this.logger = logger;
             this.wordRepository = wordRepository;
-            this.settings = settings.Value;
+
             dictionaries = new Dictionary<string, IEnumerable<string>>();
             availableDictionaries = new List<ILexicon>();
+
+            this.dictionaryApiFactory = dictionaryApiFactory;
 
             Task.Run(async () => await Initialize()).Wait();
         }
 
         private async Task Initialize()
-        {
+        {            
             await logger.InfoAsync("Initializing LexiconService...");            
             var languages = await AvailableLexicons();
             foreach (var l in languages)
@@ -134,7 +136,9 @@ namespace NBsoft.Wordzz.Services
             try
             {
                 var culture = new System.Globalization.CultureInfo(word.Language);
-                newDescritiption = await GetAPIDescription(culture.Name, word.Name);
+                newDescritiption = await dictionaryApiFactory
+                    .CreateDictionaryApi(culture)
+                    .GetDescription(word.Name);
                 await logger.InfoAsync($"Aquired new word from API: [{word.Name}] = [{newDescritiption}]");
             }
             catch (Exception ex)
@@ -154,39 +158,7 @@ namespace NBsoft.Wordzz.Services
             return editable;
 
         }
-        private async Task<string> GetAPIDescription(string language, string word)
-        {   
-            var cli = new HttpClient();
-            var uri = $"{settings.DictionaryApiUrl}/entries/{language.ToLower()}/{word.ToLower()}";
-            cli.DefaultRequestHeaders.Add("app_id", settings.DictionaryApiAppId);
-            cli.DefaultRequestHeaders.Add("app_key", settings.DictionaryApiKey);
-            var result = await cli.GetAsync(uri);
-            var retval = await result.Content.ReadAsStringAsync();
-                        
-            if (retval.Contains("error"))
-            {
-                uri = $"{settings.DictionaryApiUrl}/lemmas/{language.ToLower()}/{word.ToLower()}";
-                result = await cli.GetAsync(uri);
-                retval = await result.Content.ReadAsStringAsync();
-                var reference = retval.GetAllValues("inflectionOf").FirstOrDefault();
-                var inflection = reference.FromJson<Inflection>();
-                if (inflection != null)
-                {
-                    uri = $"{settings.DictionaryApiUrl}/entries/{language.ToLower()}/{inflection.Id}";
-                    result = await cli.GetAsync(uri);
-                    retval = await result.Content.ReadAsStringAsync();                    
-                }
-            }
-            
-            var shortdescriptions = retval.GetAllValues("shortDefinitions").ToArray();
-            if (shortdescriptions.Length>4)
-            {
-                var newArray = new string[4];
-                Array.Copy(shortdescriptions, newArray, 4);
-                shortdescriptions = newArray;
-            }
-            return string.Join(";", shortdescriptions);
-        }
+        
 
         public async Task<IEnumerable<ILexicon>> AvailableLexicons()
         {

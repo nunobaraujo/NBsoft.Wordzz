@@ -9,9 +9,7 @@
         public string ApiKey { get; set; }
         public string EncryptionKey { get; set; }
         public string ServerId { get; set; }
-        public string DictionaryApiUrl { get; set; }
-        public string DictionaryApiAppId { get; set; }
-        public string DictionaryApiKey { get; set; }
+        public DictionaryApiSettings[] Dictionaries { get; set; }
         public DbSettings Db { get; set; }
     }
     public class DbSettings
@@ -21,5 +19,13 @@
         public string MainConnString { get; set; }
         public string SessionConnString { get; set; }
         public string StatsConnString { get; set; }
+    }
+    public class DictionaryApiSettings
+    {
+        public string Type { get; set; }
+        public string Language { get; set; }
+        public string ApiUrl { get; set; }
+        public string ApiAppId { get; set; }
+        public string ApiKey { get; set; }
     }
 }
