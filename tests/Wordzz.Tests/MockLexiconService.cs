@@ -24,6 +24,11 @@ namespace Wordzz.Tests
             throw new NotImplementedException();
         }
 
+        public Task<IWord> GetWord(string language, string word)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<IWord> GetWordInfo(string language, string words)
         {
             throw new NotImplementedException();
