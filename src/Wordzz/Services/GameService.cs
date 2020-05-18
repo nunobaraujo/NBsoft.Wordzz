@@ -178,16 +178,7 @@ namespace NBsoft.Wordzz.Services
 
             // Score the words
             var scoreWords = game.ScoreMove(validationResult.Words, letters);
-
-            // Apply description
-            var completeWords = new List<IPlayWord>();
-            foreach (var wordItem in scoreWords)
-            {
-                var wordInfoWord = await lexiconService.GetWordInfo(game.Language, wordItem.GetString());
-                var editableWord = wordItem.ToDto<PlayWord>();
-                editableWord.Description = wordInfoWord.Description;                
-                completeWords.Add(editableWord);
-            }            
+                       
 
             // Create move entity
             var playFinish = new DateTime(DateTime.UtcNow.Ticks, DateTimeKind.Utc);
@@ -197,8 +188,8 @@ namespace NBsoft.Wordzz.Services
                 Player = player.UserName,
                 PlayStart = new DateTime(game.CurrentStart.Ticks, DateTimeKind.Utc),
                 PlayFinish = playFinish,
-                Words = completeWords.ToArray(),
-                Score = completeWords.Sum(w => w.Score)
+                Words = scoreWords.ToArray(),
+                Score = scoreWords.Sum(w => w.Score)
             };
 
             // Update game time, and current player and reset ConsecutivePasses
