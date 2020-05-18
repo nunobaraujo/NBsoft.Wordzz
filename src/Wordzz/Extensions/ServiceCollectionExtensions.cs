@@ -8,6 +8,7 @@ using NBsoft.Wordzz.Contracts.Settings;
 using NBsoft.Wordzz.Core.Cache;
 using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
+using NBsoft.Wordzz.DictionaryApi;
 using NBsoft.Wordzz.Entities;
 using NBsoft.Wordzz.Models;
 using NBsoft.Wordzz.Repositories;
@@ -20,12 +21,18 @@ namespace NBsoft.Wordzz.Extensions
 {
     internal  static class ServiceCollectionExtensions
     {     
+        internal static IServiceCollection RegisterFactories(this IServiceCollection src, AppSettings settings)
+        {
+            return src
+                .AddTransient<RepositoryFactory>()
+                .AddTransient<DictionaryApiFactory>();
+        }
+
         internal static IServiceCollection RegisterRepositories(this IServiceCollection src, AppSettings settings)
         {            
             var dbType = (RepositoryFactory.RepositoryType)Enum.Parse(typeof(RepositoryFactory.RepositoryType), settings.Wordzz.Db.DbType);
 
             return src
-                .AddSingleton<RepositoryFactory>()
                 .AddTransient(x => x.GetRequiredService<RepositoryFactory>().CreateUserRepository())
                 .AddTransient(x => x.GetRequiredService<RepositoryFactory>().CreateSessionRepository())
                 .AddTransient(x => x.GetRequiredService<RepositoryFactory>().CreateGameRepository())

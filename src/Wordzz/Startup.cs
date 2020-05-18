@@ -105,7 +105,8 @@ namespace NBsoft.Wordzz
 
             SetupLoggers(services, settings);
 
-            services.RegisterRepositories(settings)
+            services.RegisterFactories(settings)
+                .RegisterRepositories(settings)
                 .RegisterCache()
                 .RegisterServices();
                         
