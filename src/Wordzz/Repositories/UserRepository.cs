@@ -83,7 +83,7 @@ namespace NBsoft.Wordzz.Repositories
                 var settings = new UserSettings
                 {
                     UserName = user.UserName,
-                    MainSettings = new MainSettings { UserId = user.UserName, DefaultBoard = 1, Language="en-us"}.ToJson(),
+                    MainSettings = new MainSettings { UserId = user.UserName, DefaultBoard = 1, Language="en-US"}.ToJson(),
                     WindowsSettings = new WindowsSettings { UserId = user.UserName }.ToJson(),
                     AndroidSettings = new AndroidSettings { UserId = user.UserName }.ToJson(),
                     IOSSettings = new IOSSettings { UserId = user.UserName }.ToJson()

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.TagHelpers;
 using Microsoft.Extensions.Options;
+using NBsoft.Logs.Interfaces;
 using NBsoft.Wordzz.Core;
 using NBsoft.Wordzz.Models;
 using System;
@@ -19,10 +20,12 @@ namespace NBsoft.Wordzz.DictionaryApi
         }
 
         private readonly WordzzSettings settings;
+        private readonly ILogger log;
 
-        public DictionaryApiFactory(IOptions<WordzzSettings> settings)
+        public DictionaryApiFactory(IOptions<WordzzSettings> settings, ILogger log)
         {
             this.settings = settings.Value;
+            this.log = log;
         }
 
         public IDictionaryApi CreateDictionaryApi(CultureInfo cultureInfo)
@@ -36,8 +39,8 @@ namespace NBsoft.Wordzz.DictionaryApi
 
             return setting.Type switch
             {
-                DictionaryType.OxfordDictionaries => new OxfordDictionariesApi(setting),
-                DictionaryType.DicionarioAberto => new DicionarioAbertoApi(setting),
+                DictionaryType.OxfordDictionaries => new OxfordDictionariesApi(setting, log),
+                DictionaryType.DicionarioAberto => new DicionarioAbertoApi(setting, log),
                 _ => throw new InvalidOperationException($"Invalid setting. Dictionaries.Type:{setting.Type}"),
             };
         }

@@ -1,4 +1,6 @@
-﻿using NBsoft.Wordzz.Core;
+﻿using NBsoft.Logs;
+using NBsoft.Logs.Interfaces;
+using NBsoft.Wordzz.Core;
 using NBsoft.Wordzz.Extensions;
 using NBsoft.Wordzz.Models;
 using System;
@@ -11,10 +13,12 @@ namespace NBsoft.Wordzz.DictionaryApi
     public class OxfordDictionariesApi : IDictionaryApi
     {
         private readonly DictionaryApiSettings settings;
+        private readonly ILogger log;
 
-        public OxfordDictionariesApi(DictionaryApiSettings settings)
+        public OxfordDictionariesApi(DictionaryApiSettings settings, ILogger log)
         {
             this.settings = settings;
+            this.log = log;
         }
 
         public async Task<string> GetDescription(string word)
@@ -29,6 +33,10 @@ namespace NBsoft.Wordzz.DictionaryApi
             cli.DefaultRequestHeaders.Add("app_key", settings.ApiKey);
             var result = await cli.GetAsync(uri);
             var retval = await result.Content.ReadAsStringAsync();
+
+#if DEBUG
+            log.Debug(retval, context: word);
+#endif
 
             if (retval.Contains("error"))
                 retval = await GetFromInflexions(cli, word);
@@ -51,6 +59,9 @@ namespace NBsoft.Wordzz.DictionaryApi
             var uri = $"{settings.ApiUrl}/lemmas/{settings.Language.ToLower()}/{word.ToLower()}";
             var result = await client.GetAsync(uri);
             var lemmas = await result.Content.ReadAsStringAsync();
+#if DEBUG
+            log.Debug(lemmas, context: word);
+#endif
             if (lemmas.Contains("error"))
                 return null;
 
@@ -60,7 +71,11 @@ namespace NBsoft.Wordzz.DictionaryApi
             {
                 uri = $"{settings.ApiUrl}/entries/{settings.Language.ToLower()}/{inflection.Id}";
                 result = await client.GetAsync(uri);
-                return await result.Content.ReadAsStringAsync();
+                var retval = await result.Content.ReadAsStringAsync();
+#if DEBUG
+                log.Debug(retval, context: word);
+#endif
+                return retval;
             }
             return null;
     

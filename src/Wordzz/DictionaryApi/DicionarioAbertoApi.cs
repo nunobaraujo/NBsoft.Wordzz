@@ -1,4 +1,7 @@
-﻿using NBsoft.Wordzz.Core;
+﻿
+using NBsoft.Logs;
+using NBsoft.Logs.Interfaces;
+using NBsoft.Wordzz.Core;
 using NBsoft.Wordzz.Extensions;
 using NBsoft.Wordzz.Models;
 using System;
@@ -13,10 +16,12 @@ namespace NBsoft.Wordzz.DictionaryApi
     public class DicionarioAbertoApi : IDictionaryApi
     {
         private readonly DictionaryApiSettings settings;
+        private readonly ILogger log;
 
-        public DicionarioAbertoApi(DictionaryApiSettings settings)
+        public DicionarioAbertoApi(DictionaryApiSettings settings, ILogger log)
         {
             this.settings = settings;
+            this.log = log;
         }
         public async Task<string> GetDescription(string word)
         {
@@ -29,13 +34,22 @@ namespace NBsoft.Wordzz.DictionaryApi
             var uri = $"{settings.ApiUrl}/word/{word.ToLower()}";
             var result = await cli.GetAsync(uri);
             var content = await result.Content.ReadAsStringAsync();
+
+#if DEBUG
+            log.Debug(content, context: word);
+#endif
+
             if (string.IsNullOrEmpty(content))
                 return word;
 
-            content = content.Substring(1, content.Length - 2);
+            var res = content.FromJson<ApiResult[]>();
+            var allDescriptions = new List<string>();
+            foreach (var item in res)
+            {
+                allDescriptions.AddRange(ExtractFromXml(item.xml));
+            }
 
-            var res = content.FromJson<ApiResult>();
-            var shortdescriptions = ExtractFromXml(res.xml);
+            var shortdescriptions = allDescriptions.ToArray();
             if (shortdescriptions.Length > 4)
             {
                 var newArray = new string[4];
@@ -56,8 +70,13 @@ namespace NBsoft.Wordzz.DictionaryApi
                 var dNode = def as XmlNode;
                 if (!string.IsNullOrEmpty(dNode.InnerXml))
                 {
-                    var parsed = dNode.InnerXml.Split("\r\n");
-                    result.AddRange(parsed.Where(p => !string.IsNullOrEmpty(p)));
+                    var parsed = dNode.InnerXml.Split("\n")
+                        .Select(x => x.Replace("\r","")
+                        .Replace("[[","(")
+                        .Replace("]]", ")"));
+
+                    var notEmpty = parsed.Where(p => !string.IsNullOrEmpty(p));
+                    result.AddRange(notEmpty);
                 }
             }
             return result.ToArray();
