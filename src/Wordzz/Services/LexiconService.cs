@@ -55,6 +55,7 @@ namespace NBsoft.Wordzz.Services
             await logger.InfoAsync("LexiconService Initialized!");
         }
 
+        
 
         public async Task<ILexicon> GetDictionary(string language)
         {
@@ -63,14 +64,18 @@ namespace NBsoft.Wordzz.Services
                 return null;
             return availableDictionaries.Single(d => d.Language == language);
         }
-        public async Task<IWord> GetWordInfo(string language, string word)
+        public async Task<IWord> GetWord(string language, string word)
         {
             bool isLanguageValid = await ValidateLanguage(language);
             if (!isLanguageValid)
                 return null;
 
             var lexicon = availableDictionaries.Single(l => l.Language == language);
-            var wordResult = await wordRepository.Get(lexicon, word);
+            return await wordRepository.Get(lexicon, word);
+        }
+        public async Task<IWord> GetWordInfo(string language, string word)
+        {
+            var wordResult = await GetWord(language, word);
             if (wordResult == null)
                 return null;
 
