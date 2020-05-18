@@ -10,6 +10,8 @@ COPY ./Wordzz.sln ./
 COPY ./src/Contracts/Wordzz.Contracts.csproj ./src/Contracts/Wordzz.Contracts.csproj
 COPY ./src/Wordzz/Wordzz.csproj ./src/Wordzz/Wordzz.csproj
 
+COPY ./tests/Wordzz.Tests/Wordzz.Tests.csproj ./tests/Wordzz.Tests/Wordzz.Tests.csproj
+
 RUN dotnet restore
 
 COPY ./src ./src
