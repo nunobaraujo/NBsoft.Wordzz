@@ -44,7 +44,7 @@ namespace NBsoft.Wordzz.DictionaryApi
             if (retval == null)
                 return word;
 
-            var shortdescriptions = retval.GetAllValues("shortDefinitions").ToArray();
+            var shortdescriptions = retval.GetAllValues("definitions").ToArray();
             if (shortdescriptions.Length > 4)
             {
                 var newArray = new string[4];
