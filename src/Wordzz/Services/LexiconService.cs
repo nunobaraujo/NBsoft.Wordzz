@@ -69,9 +69,8 @@ namespace NBsoft.Wordzz.Services
             bool isLanguageValid = await ValidateLanguage(language);
             if (!isLanguageValid)
                 return null;
-
-            var lexicon = availableDictionaries.Single(l => l.Language == language);
-            return await wordRepository.Get(lexicon, word);
+            
+            return await wordRepository.Get(language, word);
         }
         public async Task<IWord> GetWordInfo(string language, string word)
         {

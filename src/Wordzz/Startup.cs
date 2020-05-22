@@ -41,8 +41,11 @@ namespace NBsoft.Wordzz
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials()
-                .WithOrigins("http://localhost:4200", "http://wordzz.nbsoft.pt");
-                
+                .WithOrigins("http://localhost:4200",
+                    "http://46.101.0.179:8080",
+                    "http://wordzz.nbsoft.pt");
+
+
             }));
             services.AddControllers();
 

@@ -1,0 +1,18 @@
+﻿version: '3.0'
+services:
+  wordzzbackend:
+    image: wordzzbackend:dev    
+    build:
+       context: .
+    command: --console
+    container_name: wordzzbackend
+    environment:
+      - ENV_INFO=DEV
+    ports:
+      - "5005:5005"
+volumes:
+    wordzzdata:
+networks:  
+  default:
+    external:
+      name: nb-net

@@ -21,9 +21,9 @@ namespace NBsoft.Wordzz.Repositories
         private readonly Func<Type, string> _getSqlInsertFields;
         private readonly Func<string> _getLastInsertedId;
 
-        public WordRepository(ILogger log, 
-            Func<IDbConnection> createdDbConnection, 
-            Func<Type, string> getSqlUpdateFields, 
+        public WordRepository(ILogger log,
+            Func<IDbConnection> createdDbConnection,
+            Func<Type, string> getSqlUpdateFields,
             Func<Type, string> getSqlInsertFields,
             Func<string> getLastInsertedId)
         {
@@ -31,110 +31,22 @@ namespace NBsoft.Wordzz.Repositories
             _getSqlUpdateFields = getSqlUpdateFields;
             _getSqlInsertFields = getSqlInsertFields;
             _getLastInsertedId = getLastInsertedId;
-            _log = log;            
+            _log = log;
         }
 
-        public async Task<IWord> Add(IWord word)
+        public async Task<IWord> Get(string language, string word)
         {
             try
             {
-                if (word == null)
-                    throw new ArgumentNullException(nameof(word));
-
-                using var cnn = _createdDbConnection();
-                cnn.Open();
-                var transaction = cnn.BeginTransaction();
-
-                // Check if Word exists in dictionary
-                string checkQuery = "SELECT Name FROM Word WHERE Language=@Language AND Name=@Name";
-                var existing = await cnn.ExecuteScalarAsync(checkQuery, new { word.Language, word.Name }, transaction);
-                if (existing != null)
-                    throw new InvalidConstraintException($"Word [{word}] already exists in dictionary {word.Language}.");
-
-                // Create Word
-                string query = $"INSERT INTO Word {_getSqlInsertFields(typeof(Word))}"
-                    .Replace("@Id,", "")
-                    .Replace("Id,", "");
-
-                var res = await cnn.ExecuteAsync(query, word);
-                if (res == 0)
-                    throw new Exception($"ExecuteAsync failed: {query} [{word.ToJson()}]");
-
-
-                var added = await cnn.ExecuteScalarAsync<uint>(_getLastInsertedId(), transaction);
-                transaction.Commit();
-
-                return await Get(added);
-            }
-            catch (Exception ex)
-            {
-                await _log?.WriteErrorAsync(nameof(WordRepository), nameof(Add), word?.ToJson(), null, ex);
-                throw;
-            }
-        }
-
-        public async Task<bool> AddDictionary(ILexicon lexicon, IEnumerable<IWord> words)
-        {
-            try
-            {
-                if (lexicon == null)
-                    throw new ArgumentNullException(nameof(lexicon));
-                
-                using var cnn = _createdDbConnection();
-                cnn.Open();
-                var transaction = cnn.BeginTransaction();
-
-                // Check if Lexicon exists
-                string checkQuery = "SELECT Language FROM Lexicon WHERE Language=@Language";
-                var existing = await cnn.ExecuteScalarAsync(checkQuery, new { lexicon.Language}, transaction);
-                if (existing != null)
-                    throw new InvalidConstraintException($"Dictionry [{lexicon.Language}] already exists");
-
-                // Create User
-                string query = $"INSERT INTO Lexicon {_getSqlInsertFields(typeof(Lexicon))}";
-
-                var res = await cnn.ExecuteAsync(query, lexicon);
-                if (res == 0)
-                    throw new Exception($"ExecuteAsync failed: {query} [{lexicon.ToJson()}]");
-
-                // Create Words
-                string wordQuery = $"INSERT INTO Word {_getSqlInsertFields(typeof(Word))}"
-                    .Replace("@Id,", "")
-                    .Replace("Id,", "");
-
-                var resWords = await cnn.ExecuteAsync(wordQuery, words);
-                if (resWords != words.Count())
-                    throw new Exception($"ExecuteAsync failed: {wordQuery}");
-                                
-                transaction.Commit();
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                await _log?.WriteErrorAsync(nameof(WordRepository), nameof(AddDictionary), lexicon?.ToJson(), null, ex);
-                return false;
-            }
-        }
-
-        public Task<bool> Delete(IWord word)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<IWord> Get(ILexicon lexicon, string word)
-        {
-            try
-            {
-                if (lexicon == null)
-                    throw new ArgumentNullException(nameof(lexicon));
+                if (language == null)
+                    throw new ArgumentNullException(nameof(language));
                 if (string.IsNullOrEmpty(word))
                     throw new ArgumentNullException(nameof(word));
 
 
                 using var cnn = _createdDbConnection();
                 var query = @"SELECT * FROM Word WHERE Language = @Language AND Name=@Name";
-                return (await cnn.QueryAsync<Word>(query, new { lexicon.Language, Name = word.ToUpper() }))
+                return (await cnn.QueryAsync<Word>(query, new { language, Name = word.ToUpper() }))
                     .SingleOrDefault();
             }
             catch (Exception ex)
@@ -143,14 +55,13 @@ namespace NBsoft.Wordzz.Repositories
                 throw;
             }
         }
-
         public async Task<IWord> Get(uint wordId)
         {
             try
             {
                 if (wordId < 1)
                     throw new ArgumentOutOfRangeException(nameof(wordId));
-                
+
                 using var cnn = _createdDbConnection();
                 var query = @"SELECT * FROM Word WHERE Id = @Id";
                 return (await cnn.QueryAsync<Word>(query, new { Id = wordId }))
@@ -162,38 +73,22 @@ namespace NBsoft.Wordzz.Repositories
                 throw;
             }
         }
-
-        public async Task<ILexicon> GetDictionary(string language)
+        public async Task<IWord> Update(IWord word)
         {
             try
             {
-                if (string.IsNullOrEmpty(language))
-                    throw new ArgumentNullException(nameof(language));
+                var fields = $"{_getSqlUpdateFields(typeof(Word))}"
+                .Replace("Id=@Id,", "");
+                var query = $"UPDATE Word SET {fields} WHERE Id=@Id";
 
                 using var cnn = _createdDbConnection();
-                var query = @"SELECT * FROM Lexicon WHERE Language = @Language";
-                return (await cnn.QueryAsync<Lexicon>(query, new { Language = language }))
-                    .FirstOrDefault();
+                var res = await cnn.ExecuteAsync(query, word);
+
+                return await Get(word.Id);
             }
             catch (Exception ex)
             {
-                await _log?.WriteErrorAsync(nameof(UserRepository), nameof(GetDictionary), null, null, ex);
-                throw;
-            }
-        }
-
-        public async Task<IEnumerable<ILexicon>> ListDictionaries()
-        {
-            try
-            {   
-                using var cnn = _createdDbConnection();
-                var query = @"SELECT * FROM Lexicon";
-                return await cnn.QueryAsync<Lexicon>(query);
-                    
-            }
-            catch (Exception ex)
-            {
-                await _log?.ErrorAsync("Error reading from [Lexicon] table",ex);
+                await _log?.ErrorAsync($"Error updating word [{word}]", ex);
                 throw;
             }
         }
@@ -243,24 +138,118 @@ namespace NBsoft.Wordzz.Repositories
             }
         }
 
-        public async Task<IWord> Update(IWord word)
+        public async Task<bool> AddDictionary(ILexicon lexicon, IEnumerable<IWord> words)
         {
             try
             {
-                var fields = $"{_getSqlUpdateFields(typeof(Word))}"
-                .Replace("Id=@Id,", "");
-                var query = $"UPDATE Word SET {fields} WHERE Id=@Id";
+                if (lexicon == null)
+                    throw new ArgumentNullException(nameof(lexicon));
 
                 using var cnn = _createdDbConnection();
-                var res = await cnn.ExecuteAsync(query, word);
+                cnn.Open();
+                var transaction = cnn.BeginTransaction();
 
-                return await Get(word.Id);
+                // Check if Lexicon exists
+                string checkQuery = "SELECT Language FROM Lexicon WHERE Language=@Language";
+                var existing = await cnn.ExecuteScalarAsync(checkQuery, new { lexicon.Language }, transaction);
+                if (existing != null)
+                    throw new InvalidConstraintException($"Dictionry [{lexicon.Language}] already exists");
+
+                // Create User
+                string query = $"INSERT INTO Lexicon {_getSqlInsertFields(typeof(Lexicon))}";
+
+                var res = await cnn.ExecuteAsync(query, lexicon);
+                if (res == 0)
+                    throw new Exception($"ExecuteAsync failed: {query} [{lexicon.ToJson()}]");
+
+                // Create Words
+                string wordQuery = $"INSERT INTO Word {_getSqlInsertFields(typeof(Word))}"
+                    .Replace("@Id,", "")
+                    .Replace("Id,", "");
+
+                var resWords = await cnn.ExecuteAsync(wordQuery, words);
+                if (resWords != words.Count())
+                    throw new Exception($"ExecuteAsync failed: {wordQuery}");
+
+                transaction.Commit();
+
+                return true;
             }
             catch (Exception ex)
             {
-                await _log?.ErrorAsync($"Error updating word [{word}]", ex);
+                await _log?.WriteErrorAsync(nameof(WordRepository), nameof(AddDictionary), lexicon?.ToJson(), null, ex);
+                return false;
+            }
+        }
+        public async Task<ILexicon> GetDictionary(string language)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(language))
+                    throw new ArgumentNullException(nameof(language));
+
+                using var cnn = _createdDbConnection();
+                var query = @"SELECT * FROM Lexicon WHERE Language = @Language";
+                return (await cnn.QueryAsync<Lexicon>(query, new { Language = language }))
+                    .FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                await _log?.WriteErrorAsync(nameof(UserRepository), nameof(GetDictionary), null, null, ex);
                 throw;
             }
         }
+        public async Task<bool> DeleteDictionary(string language)
+        {
+            try
+            {
+                if (language == null)
+                    throw new ArgumentNullException(nameof(language));
+
+                using var cnn = _createdDbConnection();
+                cnn.Open();
+                
+
+                // Check if Lexicon exists
+                string checkQuery = "SELECT Language FROM Lexicon WHERE Language=@Language";
+                var existing = await cnn.ExecuteScalarAsync(checkQuery, new { language });
+                if (existing == null)
+                    throw new InvalidConstraintException($"Dictionary [{language}] doesn't exist");
+
+                var transaction = cnn.BeginTransaction();
+                // Remove Words
+                string query = $"DELETE FROM Word WHERE Language=@language";
+                await cnn.ExecuteAsync(query, new { language }, transaction, 720);
+
+                // Remove Dictionary
+                query = $"DELETE FROM Lexicon WHERE Language=@language";
+                int res = await cnn.ExecuteAsync(query, new { language }, transaction,120);
+
+                transaction.Commit();
+
+                return res == 1;
+            }
+            catch (Exception ex)
+            {
+                await _log?.WriteErrorAsync(nameof(WordRepository), nameof(DeleteDictionary), language, null, ex);
+                return false;
+            }
+        }
+        public async Task<IEnumerable<ILexicon>> ListDictionaries()
+        {
+            try
+            {
+                using var cnn = _createdDbConnection();
+                var query = @"SELECT * FROM Lexicon";
+                return await cnn.QueryAsync<Lexicon>(query);
+
+            }
+            catch (Exception ex)
+            {
+                await _log?.ErrorAsync("Error reading from [Lexicon] table", ex);
+                throw;
+            }
+        }
+
     }
 }

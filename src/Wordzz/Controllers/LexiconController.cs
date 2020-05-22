@@ -104,6 +104,33 @@ namespace NBsoft.Wordzz.Controllers
             }
         }
 
+        [HttpDelete, Route("{language}")]
+        [ProducesResponseType(typeof(bool), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> Delete(string language)
+        {
+            string accessToken = await HttpContext.GetToken();
+            var session = await sessionService.GetSession(accessToken);
+            if (session == null)
+                return Unauthorized(new { message = "Session expired. Please login again." });
+
+            if (session.UserId != Constants.AdminUser)
+                return BadRequest(new { message = "Not authorized" });
+
+            try
+            {
+                var result = await wordRepository.DeleteDictionary(language);
+                return Ok(result);
+
+
+            }
+            catch (Exception ex)
+            {
+                await log.ErrorAsync("Error in wordRepository.DeleteDictionary()", ex);
+                return BadRequest(new { title = ex.GetType().ToString(), details = ex.StackTrace, message = ex.Message });
+            }
+        }
+
         [HttpGet, Route("{language}")]
         [ProducesResponseType(typeof(ILexicon), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(Nullable), (int)HttpStatusCode.NoContent)]
@@ -141,7 +168,7 @@ namespace NBsoft.Wordzz.Controllers
                 var lexicon = await wordRepository.GetDictionary(language);
                 if (lexicon != null)
                 {
-                    var res = await wordRepository.Get(lexicon, word);
+                    var res = await wordRepository.Get(language, word);
                     if (res != null && string.IsNullOrEmpty(res.Description)) 
                     {
                         var info = await lexiconService.GetWordInfo(lexicon.Language, word);
