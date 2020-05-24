@@ -17,6 +17,8 @@ RUN dotnet restore
 COPY ./src ./src
 RUN dotnet build -c Release --no-restore
 
+RUN dotnet test --logger trx -c Release
+
 RUN dotnet publish "./src/Wordzz/Wordzz.csproj" -c Release -o /app --no-restore 
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.1

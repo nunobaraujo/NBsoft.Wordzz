@@ -9,6 +9,7 @@
         public string ApiKey { get; set; }
         public string EncryptionKey { get; set; }
         public string ServerId { get; set; }
+        public bool UseLexiconCache { get; set; }
         public DictionaryApiSettings[] Dictionaries { get; set; }
         public DbSettings Db { get; set; }
     }

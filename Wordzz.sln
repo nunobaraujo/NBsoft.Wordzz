@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.dockerignore = .dockerignore
 		.gitignore = .gitignore
+		docker-compose-dev.yml = docker-compose-dev.yml
 		docker-compose.yml = docker-compose.yml
 		Dockerfile = Dockerfile
 		dockerPublish.ps = dockerPublish.ps
@@ -18,7 +19,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wordzz.Contracts", "src\Contracts\Wordzz.Contracts.csproj", "{1FA52692-CCDA-4DDD-A8B5-A5F9E3E52DC0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wordzz.Tests", "tests\Wordzz.Tests\Wordzz.Tests.csproj", "{64AC35A8-A4F5-4A05-9531-1958BE79AA07}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wordzz.Tests", "tests\Wordzz.Tests\Wordzz.Tests.csproj", "{64AC35A8-A4F5-4A05-9531-1958BE79AA07}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

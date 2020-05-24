@@ -47,8 +47,10 @@ namespace ClientTest
                 var rawWords = ConvertPtDic(@"D:\dev\wordlist-ao-latest_UTF8.txt");
                 //var words = ExcludeProperNouns(rawWords)
                 var words = rawWords.Select(w => RemoveSpecials(w))
+                    .Distinct()
                     .ToList();                
                 words.Sort();
+                
                 WriteCommas(new CultureInfo("pt-pt"), words);
                 WriteJson(new CultureInfo("pt-pt"), words);
 
