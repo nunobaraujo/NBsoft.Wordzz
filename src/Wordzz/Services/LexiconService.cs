@@ -21,14 +21,14 @@ namespace NBsoft.Wordzz.Services
     internal class LexiconService : ILexiconService
     {
         private static object dictionaryLock = new object();
-        private static object apiLock = new object();
+        private static object apiLock = null;
 
         private readonly IWordRepository wordRepository;
-        private readonly ILogger logger;
-        private readonly Dictionary<string, IEnumerable<string>> dictionaries;
+        private readonly ILogger logger;        
         private readonly DictionaryApiFactory dictionaryApiFactory;
+        private readonly bool useCache;
 
-
+        private Dictionary<string, IEnumerable<string>> dictionaries;
         private IEnumerable<ILexicon> availableDictionaries;
 
         public LexiconService(ILogger logger, IWordRepository wordRepository, IOptions<WordzzSettings> settings, DictionaryApiFactory dictionaryApiFactory)
@@ -36,26 +36,39 @@ namespace NBsoft.Wordzz.Services
             this.logger = logger;
             this.wordRepository = wordRepository;
 
-            dictionaries = new Dictionary<string, IEnumerable<string>>();
+            var s = settings.Value;
+            useCache = s.UseLexiconCache;
             availableDictionaries = new List<ILexicon>();
 
             this.dictionaryApiFactory = dictionaryApiFactory;
 
-            Task.Run(async () => await Initialize()).Wait();
+            if (useCache)
+                Task.Run(async () => await Initialize()).Wait();
+            else
+                logger.Info("Not using Lexicon Cache!");
         }
 
         private async Task Initialize()
-        {            
-            await logger.InfoAsync("Initializing LexiconService...");            
+        {
+            dictionaries = new Dictionary<string, IEnumerable<string>>();
+            await logger.InfoAsync("Initializing Lexicon Cache...");            
             var languages = await AvailableLexicons();
             foreach (var l in languages)
             {
                 await LoadDictionary(l.Language);
             }
-            await logger.InfoAsync("LexiconService Initialized!");
+            await logger.InfoAsync("Lexicon Cache Initialized!");
         }
 
-        
+        private static object ApiLock { 
+            get 
+            {
+                if (apiLock == null)
+                    apiLock = new object();
+                return apiLock;
+            }
+        }
+
 
         public async Task<ILexicon> GetDictionary(string language)
         {
@@ -72,17 +85,20 @@ namespace NBsoft.Wordzz.Services
             
             return await wordRepository.Get(language, word);
         }
-        public async Task<IWord> GetWordInfo(string language, string word)
+        public Task<IWord> GetWordInfo(string language, string word)
         {
-            var wordResult = await GetWord(language, word);
-            if (wordResult == null)
-                return null;
+            lock (ApiLock)
+            {
+                var wordResult = GetWord(language, word).Result;
+                if (wordResult == null)
+                    return Task.FromResult<IWord>(null);
 
-                        
-            // get info from word API and save to DB
-            if (string.IsNullOrEmpty(wordResult.Description))            
-                return await DownloadWordInfo(wordResult);
-            return wordResult;
+                // get info from word API and save to DB
+                if (string.IsNullOrEmpty(wordResult.Description))
+                    return DownloadWordInfo(wordResult);
+                return Task.FromResult(wordResult);
+            }
+            
         }
                                
                 
@@ -107,19 +123,27 @@ namespace NBsoft.Wordzz.Services
 
         public async Task<bool> ValidateWord(string language, string word)
         {
+            var upperWord = word.ToUpper();
             // Validate Language
             bool isLanguageValid = await ValidateLanguage(language);
             if (!isLanguageValid)                         
                 return false;
 
-            // Load Dictionary if not loaded yet
-            await LoadDictionary(language);
-
             var isValid = false;
-            lock (dictionaryLock)
+            
+            if (useCache)
             {
-                isValid = dictionaries[language].Any(w => w == word.ToUpper());                
+                // Load Dictionary if not loaded yet
+                await LoadDictionary(language);
+                lock (dictionaryLock)
+                {
+                    isValid = dictionaries[language].Any(w => w == upperWord);
+                }
             }
+            else
+            {
+                isValid = (await wordRepository.Get(language, upperWord)) != null;
+            }           
             return isValid;
         }
         private async Task<bool> ValidateLanguage(string language)
