@@ -165,18 +165,12 @@ namespace NBsoft.Wordzz.Controllers
                 return Unauthorized(new { message = "Session expired. Please login again." });
             try
             {
-                var lexicon = await wordRepository.GetDictionary(language);
-                if (lexicon != null)
-                {
-                    var res = await wordRepository.Get(language, word);
-                    if (res != null && string.IsNullOrEmpty(res.Description)) 
-                    {
-                        var info = await lexiconService.GetWordInfo(lexicon.Language, word);
-                        return Ok(info);
-                    }
-                    return Ok(res);
-                }
-                throw new ArgumentException($"Invalid language {language}");
+                var lexicon = await lexiconService.GetDictionary(language);
+                if (lexicon == null)
+                    return NoContent();
+
+                var result = await lexiconService.GetWordInfo(lexicon.Language, word);
+                return Ok(result);
             }
             catch (Exception ex)
             {

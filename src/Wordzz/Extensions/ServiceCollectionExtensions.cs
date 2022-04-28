@@ -49,7 +49,7 @@ namespace NBsoft.Wordzz.Extensions
             return src.AddSingleton<ISessionService, SessionService>()
                 .AddSingleton<IGameService, GameService>()
                 .AddSingleton<IGameQueueService, GameQueueService>()
-                .AddSingleton<ILexiconService, LexiconService>()                
+                .AddSingleton<ILexiconService, CacheLexiconService>()                
                 .AddSingleton<IStatService, StatService>();
 
         }

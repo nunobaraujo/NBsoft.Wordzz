@@ -3,7 +3,6 @@ using NBsoft.Logs;
 using NBsoft.Logs.Interfaces;
 using NBsoft.Wordzz.Contracts;
 using NBsoft.Wordzz.Contracts.Entities;
-using NBsoft.Wordzz.Core;
 using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
 using NBsoft.Wordzz.DictionaryApi;
@@ -12,8 +11,6 @@ using NBsoft.Wordzz.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Services
@@ -51,8 +48,8 @@ namespace NBsoft.Wordzz.Services
         private async Task Initialize()
         {
             dictionaries = new Dictionary<string, IEnumerable<string>>();
-            await logger.InfoAsync("Initializing Lexicon Cache...");            
-            var languages = await AvailableLexicons();
+            await logger.InfoAsync("Initializing Lexicon Cache...");
+            var languages = await wordRepository.ListDictionaries();
             foreach (var l in languages)
             {
                 await LoadDictionary(l.Language);
@@ -71,16 +68,14 @@ namespace NBsoft.Wordzz.Services
 
 
         public async Task<ILexicon> GetDictionary(string language)
-        {
-            var isLanguageValid = await ValidateLanguage(language);
-            if (!isLanguageValid)
+        {   
+            if (!await ValidateLanguage(language))
                 return null;
             return availableDictionaries.Single(d => d.Language == language);
         }
         public async Task<IWord> GetWord(string language, string word)
-        {
-            bool isLanguageValid = await ValidateLanguage(language);
-            if (!isLanguageValid)
+        {   
+            if (!await ValidateLanguage(language))
                 return null;
             
             return await wordRepository.Get(language, word);
@@ -124,9 +119,8 @@ namespace NBsoft.Wordzz.Services
         public async Task<bool> ValidateWord(string language, string word)
         {
             var upperWord = word.ToUpper();
-            // Validate Language
-            bool isLanguageValid = await ValidateLanguage(language);
-            if (!isLanguageValid)                         
+            
+            if (!await ValidateLanguage(language))                         
                 return false;
 
             var isValid = false;
@@ -188,9 +182,6 @@ namespace NBsoft.Wordzz.Services
         }
         
 
-        public async Task<IEnumerable<ILexicon>> AvailableLexicons()
-        {
-            return await wordRepository.ListDictionaries();
-        }
+        
     }
 }
