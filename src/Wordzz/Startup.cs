@@ -1,24 +1,20 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using NBsoft.Logs;
+using NBsoft.Logs.Sql;
+using NBsoft.Wordzz.Extensions;
+using NBsoft.Wordzz.Hubs;
 using NBsoft.Wordzz.Infrastructure;
 using NBsoft.Wordzz.Models;
-using NBsoft.Wordzz.Extensions;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using System;
 using System.Text;
-using NBsoft.Wordzz.Services;
-using NBsoft.Wordzz.Hubs;
-using NBsoft.Logs.Sql;
+using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz
 {
@@ -42,7 +38,7 @@ namespace NBsoft.Wordzz
                 .AllowAnyHeader()
                 .AllowCredentials()
                 .WithOrigins("http://localhost:4200",
-                    "http://46.101.0.179:8080",
+                    "http://146.190.227.232:8080",
                     "http://wordzz.nbsoft.pt");
 
 
