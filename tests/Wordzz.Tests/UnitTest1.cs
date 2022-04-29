@@ -1,10 +1,8 @@
-using NBsoft.Wordzz.Contracts;
 using NBsoft.Wordzz.Contracts.Entities;
 using NBsoft.Wordzz.Core.Services;
-using NBsoft.Wordzz.Extensions;
+using NBsoft.Wordzz.GameLogic;
 using NBsoft.Wordzz.Helpers;
 using NUnit.Framework;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;

@@ -3,17 +3,16 @@ using NBsoft.Logs.Interfaces;
 using NBsoft.Wordzz.Contracts;
 using NBsoft.Wordzz.Contracts.Entities;
 using NBsoft.Wordzz.Contracts.Results;
-using NBsoft.Wordzz.Core;
 using NBsoft.Wordzz.Core.Cache;
 using NBsoft.Wordzz.Core.Models;
 using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
 using NBsoft.Wordzz.Entities;
 using NBsoft.Wordzz.Extensions;
+using NBsoft.Wordzz.GameLogic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Services

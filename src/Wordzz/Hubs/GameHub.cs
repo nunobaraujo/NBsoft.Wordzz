@@ -1,16 +1,13 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using NBsoft.Logs;
+using NBsoft.Logs.Interfaces;
 using NBsoft.Wordzz.Contracts;
-using NBsoft.Wordzz.Contracts.Entities;
 using NBsoft.Wordzz.Contracts.Requests;
 using NBsoft.Wordzz.Contracts.Results;
-using NBsoft.Wordzz.Core.Models;
 using NBsoft.Wordzz.Core.Services;
-using NBsoft.Wordzz.Entities;
-using NBsoft.Wordzz.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace NBsoft.Wordzz.Hubs
@@ -20,10 +17,12 @@ namespace NBsoft.Wordzz.Hubs
         public const string Address = "/hubs/game";
 
         private readonly IGameService gameService;
-        
-        public GameHub(IGameService gameService)
+        private readonly ILogger logger;
+
+        public GameHub(IGameService gameService, ILogger logger)
         {
-            this.gameService = gameService;            
+            this.gameService = gameService;
+            this.logger = logger;
         }
 
         public async override Task OnConnectedAsync()
@@ -37,6 +36,7 @@ namespace NBsoft.Wordzz.Hubs
                     ConnectionId = Context.ConnectionId,
                     UserName = user
                 });
+                await logger.InfoAsync($"Client Connected: {user} @ {Context.ConnectionId}");
                 await Clients.Others.Connected(user);
             }
             await base.OnConnectedAsync();
@@ -47,6 +47,7 @@ namespace NBsoft.Wordzz.Hubs
             if (client != null)
             {
                 ClientHandler.RemoveClient(Context.ConnectionId);
+                await logger.InfoAsync($"Client Disconnected: {client.UserName} @ {client.ConnectionId}");
                 await Clients.Others.Disconnected(client.UserName);
             }
             await base.OnDisconnectedAsync(exception);

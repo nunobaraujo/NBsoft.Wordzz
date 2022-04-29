@@ -2,10 +2,10 @@
 using NBsoft.Logs.Interfaces;
 using NBsoft.Wordzz.Cache;
 using NBsoft.Wordzz.Contracts;
-using NBsoft.Wordzz.Contracts.Entities;
 using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
 using NBsoft.Wordzz.DictionaryApi;
+using NBsoft.Wordzz.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,13 +15,15 @@ namespace NBsoft.Wordzz.Services
 {
     internal class CacheLexiconService : ILexiconService
     {
-        private readonly static object padlock = new object();
+        private static object padLock = new object();
         private readonly IWordRepository wordRepository;
         private readonly ILogger logger;
         private readonly DictionaryApiFactory dictionaryApiFactory;
 
         private DateTime lastCacheUpdate;
         private IEnumerable<ILexicon> lexicons;
+        private const int CacheDurationMinutes = 60;
+
         public CacheLexiconService(ILogger logger, IWordRepository wordRepository, DictionaryApiFactory dictionaryApiFactory)
         {
             this.logger = logger;
@@ -37,51 +39,42 @@ namespace NBsoft.Wordzz.Services
             return lexicons.SingleOrDefault(x => x.Language.ToUpper() == language.ToUpper());
         }
 
-        public Task<IWord> GetWordInfo(string language, string word)
+        public async Task<IWord> GetWordInfo(string language, string word)
         {
-            Task.WaitAll(EnsureCacheIsUpdated());
-
-            var result = DictionaryCache.Instance.GetWord(language, word);
-            if (result == null)
-                return null;
-
-            lock (padlock)
+            await EnsureCacheIsUpdated();
+            // Lock to prevent concurrent requests of the same word to the Dictionary API
+            // If the word has no description, when the lock is over it should already have it.
+            // next call in queue will not get an empty description on GetWord
+            lock (padLock) 
             {
+                var result = DictionaryCache.Instance.GetWord(language, word);
+                if (result == null)
+                    return null;
+
                 if (string.IsNullOrEmpty(result.Description))
                 {
-                    var newDescritiptionTask = dictionaryApiFactory
-                     .CreateDictionaryApi(new System.Globalization.CultureInfo(result.Language))
-                     .GetDescription(result.Name);
-                    Task.WaitAll(newDescritiptionTask);
-                    var newDescritiption = newDescritiptionTask.Result;
-
-                    logger.Info($"Aquired new word from API: [{result.Name}] = [{newDescritiption}]");
-                    var newWord = new Word
-                    {
-                        Id = result.Id,
-                        Language = result.Language,
-                        Description = newDescritiption,
-                        Name = result.Name
-                    };
-
-                    Task.WaitAll(wordRepository.Update(newWord));
+                    var newWord = dictionaryApiFactory.UpdateDescription(result);
                     DictionaryCache.Instance.AddOrUpdateWord(newWord);
 
+                    logger.Info($"Aquired new word from API: [{newWord.Name}] = [{newWord.Description}]");
+
+                    Task.WaitAll(wordRepository.Update(newWord));
                     result = newWord;
                 }
-                return Task.FromResult(result);
+                return result;
             }
         }
 
-        public Task<bool> ValidateWord(string language, string word)
+        public async Task<bool> ValidateWord(string language, string word)
         {
+            await EnsureCacheIsUpdated();
             var result = DictionaryCache.Instance.GetWord(language, word);
-            return Task.FromResult(result != null);
+            return result != null;
         }
 
         private async Task EnsureCacheIsUpdated()
         {
-            if (DateTime.UtcNow > lastCacheUpdate.AddMinutes(5))
+            if (DateTime.UtcNow > lastCacheUpdate.AddMinutes(CacheDurationMinutes))
                 await RefreshCache();
         }
 
