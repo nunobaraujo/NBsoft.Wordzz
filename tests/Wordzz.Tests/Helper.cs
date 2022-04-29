@@ -1,6 +1,6 @@
 ﻿using NBsoft.Wordzz.Contracts;
 using NBsoft.Wordzz.Contracts.Entities;
-using NBsoft.Wordzz.Extensions;
+using NBsoft.Wordzz.GameLogic;
 using System.Collections.Generic;
 
 namespace Wordzz.Tests

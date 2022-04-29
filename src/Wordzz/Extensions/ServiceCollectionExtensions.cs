@@ -44,12 +44,16 @@ namespace NBsoft.Wordzz.Extensions
         {
             return src.AddSingleton<IGameCache, GameCache>();
         }
-        internal static IServiceCollection RegisterServices(this IServiceCollection src)
+        internal static IServiceCollection RegisterServices(this IServiceCollection src, AppSettings settings)
         {
+            if (settings.Wordzz.UseLexiconCache)
+                src.AddSingleton<ILexiconService, CacheLexiconService>();
+            else
+                src.AddSingleton<ILexiconService, LexiconService>();
+
             return src.AddSingleton<ISessionService, SessionService>()
                 .AddSingleton<IGameService, GameService>()
                 .AddSingleton<IGameQueueService, GameQueueService>()
-                .AddSingleton<ILexiconService, LexiconService>()                
                 .AddSingleton<IStatService, StatService>();
 
         }

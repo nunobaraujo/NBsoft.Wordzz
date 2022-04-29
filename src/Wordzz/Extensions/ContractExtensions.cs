@@ -1,9 +1,7 @@
 ﻿using NBsoft.Wordzz.Contracts;
-using NBsoft.Wordzz.Contracts.Entities;
 using NBsoft.Wordzz.Core.Models;
-using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Entities;
-using System.Threading.Tasks;
+using NBsoft.Wordzz.GameLogic;
 
 namespace NBsoft.Wordzz.Extensions
 {

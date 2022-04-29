@@ -26,37 +26,51 @@ namespace NBsoft.Wordzz.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserRepository userRepository;
+        private readonly IUserService userService;
         private readonly ISessionService sessionService;
         private readonly ILogger log;
 
-        public UserController(IUserRepository userRepository, ISessionService sessionService, ILogger log)
+        public UserController(IUserRepository userRepository, IUserService userService, ISessionService sessionService, ILogger log)
         {            
             this.userRepository = userRepository;
+            this.userService = userService;
             this.sessionService = sessionService;
             this.log = log;
         }
 
         [AllowAnonymous]
         [HttpPost]        
-        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType(typeof(IUser), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> Add([FromBody]LogInRequest request)
         {
-            var user = new User {
-                CreationDate = DateTime.UtcNow,
-                Deleted = false,
-                UserName = request.UserName,
-                PasswordHash = "",
-                Salt = ""
-            };
-            
             try
             {
-                var newUser = await userRepository.Add(user, request.Email);
-                await userRepository.SetPassword(request.UserName, request.Password);
-
-                await log.InfoAsync($"New User Created: [{newUser.UserName}]");
+                var newUser = await userService.AddUser(request.UserName, request.Password, request.Password);
                 return Ok(newUser);
+            }
+            catch (Exception ex)
+            {
+                await log.ErrorAsync("Error in userRepository.Add()", ex);
+                return BadRequest(new { title = ex.GetType().ToString(), details = ex.StackTrace, message = ex.Message });
+            }
+        }
+
+        [AllowAnonymous]
+        [HttpPut]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType(typeof(bool), (int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        { 
+            try
+            {
+                var user = userRepository.GetByEmail(request.Email);
+                if (user == null)
+                    return NoContent();
+
+                var result = await userService.RequestPasswordChange(request.Email);
+                return Ok(result);
             }
             catch (Exception ex)
             {

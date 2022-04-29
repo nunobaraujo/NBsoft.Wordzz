@@ -1,12 +1,10 @@
 ﻿using NBsoft.Wordzz.Contracts;
 using NBsoft.Wordzz.Contracts.Entities;
-using NBsoft.Wordzz.Core.Services;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace NBsoft.Wordzz.Extensions
+namespace NBsoft.Wordzz.GameLogic
 {
     public static class WordExtensions
     {
