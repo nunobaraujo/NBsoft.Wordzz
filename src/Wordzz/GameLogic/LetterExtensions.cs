@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace NBsoft.Wordzz.Extensions
+namespace NBsoft.Wordzz.GameLogic
 {
     public static class LetterExtensions
     {

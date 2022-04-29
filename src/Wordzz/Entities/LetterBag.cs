@@ -1,7 +1,6 @@
 ﻿using NBsoft.Wordzz.Contracts;
 using NBsoft.Wordzz.Contracts.Entities;
-using NBsoft.Wordzz.Core.Models;
-using NBsoft.Wordzz.Extensions;
+using NBsoft.Wordzz.GameLogic;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

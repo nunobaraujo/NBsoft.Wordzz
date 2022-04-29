@@ -6,6 +6,7 @@ using NBsoft.Wordzz.Core.Repositories;
 using NBsoft.Wordzz.Core.Services;
 using NBsoft.Wordzz.Entities;
 using NBsoft.Wordzz.Extensions;
+using NBsoft.Wordzz.GameLogic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
